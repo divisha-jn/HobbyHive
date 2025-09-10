@@ -7,6 +7,6 @@
 - UI Mockups  
 
 ## Files
-The `Lab-1-Deliverables.pdf` contains all the required Lab 1 deliverables.  
+The `Lab 1 Deliverables.pdf` contains all the required Lab 1 deliverables.  
 
-The `UseCaseDiagram.png` is included for reference in case the use case diagram in the PDF file is too small.  
+The `Use Case Diagram.png` is included for reference in case the use case diagram in the PDF is too small.  
