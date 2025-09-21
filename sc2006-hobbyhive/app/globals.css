@@ -64,4 +64,6 @@ body {
 .title { 
   font: 1.5em sans-serif;
   padding-bottom: 16px;
+body{
+  padding:1rem;
 }
