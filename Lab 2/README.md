@@ -1,4 +1,4 @@
-# Lab 2 deliverables
+# Lab 2 Deliverables
 
 ## Deliverables
 - Complete Use Case diagram
