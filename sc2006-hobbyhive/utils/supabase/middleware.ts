@@ -42,7 +42,8 @@ export async function updateSession(request: NextRequest) {
     !request.nextUrl.pathname.includes('/login') &&
     !request.nextUrl.pathname.includes('/register') &&
     !request.nextUrl.pathname.includes('/auth') &&
-    !request.nextUrl.pathname.includes('/error')
+    !request.nextUrl.pathname.includes('/error') &&
+    !request.nextUrl.pathname.includes('/groupchat')
   ) {
     // no user, potentially respond by redirecting the user to the login page
     const url = request.nextUrl.clone()
