@@ -5,11 +5,12 @@ import Link from "next/link";
 import Navbar from "../components/Navbar";
 import ListingCard from '../components/ListingCard';
 import { useState, useRef } from 'react';
+import { text } from 'stream/consumers';
 
 
 const page = () => {
   const [input, setInput] = useState('');
-  const [messages, setMessages] = useState<string[]>([]);
+  const [messages, setMessages] = useState<{sender: string; text: string}[]>([{sender:"other", text:"hello"}]);
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   
@@ -20,7 +21,7 @@ const page = () => {
   }, [messages]);
 
   const handleSend = () => {  
-    setMessages([...messages, input]);
+    setMessages([...messages, {sender: "me",text : input}]);
     setInput('');
   }
   return (
@@ -63,8 +64,12 @@ const page = () => {
             {messages.length > 0?(
               
               messages.map((msg,idx) => (
-              <p key={idx} className="chat-bubble chat-start">
-                {msg}</p>
+                <div key={idx} >
+                    <div  className={`${msg.sender==="me"? "chat chat-start":"chat chat-end"}`}>
+                    <div className=" chat chat-header">{msg.sender}</div>
+                    <p className='chat-bubble'>{msg.text}</p>
+                  </div>
+                </div>
             ))
             ):(
               <p className="text-gray-500 text-center">No messages yet...</p>
