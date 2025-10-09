@@ -3,60 +3,75 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/utils/supabase/client"; // adjust path if needed
 import React from "react";
+import { createClient } from "@/utils/supabase/client";
+import { getCurrentUser, fetchProfile, logout } from "@/utils/supabase/account";
+
+interface UserState {
+  email: string | null;
+  username?: string | null;
+  profile_picture?: string | null;
+}
 
 const Header: React.FC = () => {
-    const router = useRouter();
-    const [user, setUser] = useState<{ email: string | null } | null>(null);
+  const router = useRouter();
+  const supabase = createClient();
+  const [user, setUser] = useState<UserState | null>(null);
 
-
-    // Fetch current user on mount
-    const supabase = createClient();
-    useEffect(() => {
-    // Get current session
-    supabase.auth.getSession().then(({ data }) => {
-        if (data.session?.user) {
-        setUser({ email: data.session.user.email ?? "No email" });
-        }
-    });
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-        if (session?.user) {
-        setUser({ email: session.user.email ?? "No email" });
-        } else {
-        setUser(null);
-        }
-    });
-
-    // Cleanup
-    return () => {
-        subscription.unsubscribe();
-    };
-    }, []);
-
-
-
-    const handleLogout = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      console.error("Logout error:", error.message);
+  const loadUser = async () => {
+    const currentUser = await getCurrentUser();
+    if (currentUser) {
+      try {
+        const profile = await fetchProfile(currentUser.id);
+        setUser({
+          email: currentUser.email ?? null,
+          username: profile.username ?? null,
+          profile_picture: profile.profile_picture ?? null,
+        });
+      } catch {
+        setUser({ email: currentUser.email ?? null });
+      }
     } else {
-      router.push("/login");
+      setUser(null);
     }
+  };
+
+  useEffect(() => {
+    loadUser();
+
+    // Proper auth state listener using Supabase client
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+      loadUser();
+    });
+
+    return () => subscription.unsubscribe();
+  }, [supabase]);
+
+  const handleLogout = async () => {
+    await logout();
+    router.push("/login");
   };
 
   return (
     <header className="w-full flex justify-between items-center p-1 bg-gray-100 shadow-md">
       <h1 className="title" style={{ fontSize: "2em", fontWeight: 700 }}>
         <span style={{ color: "#1DDACA" }}>Hobby</span>
-        <span>Hive</span>
+        <span style={{ color: "#363636" }}>Hive</span>
       </h1>
+
       <div className="flex items-center gap-4">
         {user ? (
           <>
-            <span className="text-gray-700">{user.email}</span>
+            {user.profile_picture && (
+              <img
+                src={`${user.profile_picture}?t=${Date.now()}`}
+                alt="Profile Picture"
+                className="w-8 h-8 rounded-full object-cover"
+              />
+            )}
+            <span className="text-gray-700 font-medium">
+              {user.username ?? user.email}
+            </span>
             <button
               onClick={handleLogout}
               className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition"

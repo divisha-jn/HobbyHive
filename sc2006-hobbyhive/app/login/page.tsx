@@ -86,7 +86,7 @@ export default function LoginPage() {
       </form>
 
       <div style={{ textAlign: "center", marginTop: 12 }}>
-        <Link href="/registration">Don&apos;t have an account? Register here</Link>
+        <Link href="/register">Don&apos;t have an account? Register here</Link>
       </div>
 
 
