@@ -9,9 +9,9 @@ const Navbar = () => {
             <details className="dropdown">
                 <summary className="btn m-1 rounded-xl">≡</summary>
                     <ul className="menu dropdown-content bg-base-100 rounded-box z-1 w-52 p-2 shadow-sm">
-                        <li><Link href="">Profile</Link></li>
-                        <li><Link href="">Events</Link></li>
-                        <li><Link href="">Groupchats</Link></li>
+                        <li><Link href="/profile">Profile</Link></li>
+                        <li><Link href="/events">Events</Link></li>
+                        <li><Link href="/groupchat">Groupchats</Link></li>
 
                     </ul>
             </details>
