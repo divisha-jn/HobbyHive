@@ -244,10 +244,6 @@ export default function LoginPage() {
       <div style={{ textAlign: "center", marginTop: 12 }}>
         <Link href="/register">Don&apos;t have an account? Register here</Link>
       </div>
-
-
-    
-      <Link href="/groupchat" className="p-20">temporary route to gc</Link>
     </div>
     
   );

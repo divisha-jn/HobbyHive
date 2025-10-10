@@ -13,7 +13,7 @@ export default function Home() {
         <br />
         <Link href="/events">Events</Link>
         <ListingCard />
-        <Link href="/groupchat" className="p-20">temporary route to gc</Link>
+        <Link href="/groupchat" className="p-20">temporary route to gc</Link>  
       </div>
       </main>
   );
