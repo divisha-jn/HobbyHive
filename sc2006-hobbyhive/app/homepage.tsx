@@ -10,7 +10,7 @@ export default function Home() {
       <div>
 
         <Link href="/profile">my profile</Link>
-        <br></br>
+        <br />
         <Link href="/events">Events</Link>
         <ListingCard />
 
