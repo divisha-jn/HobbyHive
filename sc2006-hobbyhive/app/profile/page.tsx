@@ -106,7 +106,7 @@ const ProfilePage: React.FC = () => {
                     className="px-6 py-2 text-white rounded-lg transition shadow-md hover:opacity-90"
                     style={{ backgroundColor: "#1DDACA" }}
                   >
-                    Find Events
+                    My Events
                   </button>
                   <button
                     onClick={handleCreateEvent}
