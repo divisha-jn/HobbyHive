@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import Header from '../components/header'
 import Navbar from "../components/Navbar";
+import { useRouter } from "next/navigation";
 
 interface FollowingUser {
   id: number;
@@ -21,7 +22,7 @@ const ProfilePage: React.FC = () => {
   const [username, setUsername] = useState("johndoe");
   const [email, setEmail] = useState("johndoe123@email.com");
   const [password, setPassword] = useState("pa$$word123!");
-
+  const router = useRouter();
   const following: FollowingUser[] = [
     { id: 1, name: "Alan Wong", avatar: "https://i.pravatar.cc/150?img=12" },
   ];
@@ -36,7 +37,7 @@ const ProfilePage: React.FC = () => {
 
   const handleFindEvents = () => {
     console.log("Navigate to find events");
-    // router.push('/events');
+    router.push('/MyEvents');
   };
 
   const handleCreateEvent = () => {
@@ -80,7 +81,7 @@ const ProfilePage: React.FC = () => {
                 </div>
                 <button
                   onClick={handleEditProfile}
-                  className="px-6 py-2 text-white rounded-lg transition shadow-md hover:opacity-90"
+                  className="px-6 py-2 text-white rounded-lg transition shadow-md hover:opacity-80"
                   style={{ backgroundColor: "#1DDACA" }}
                 >
                   ✏️ Edit Profile
@@ -103,14 +104,14 @@ const ProfilePage: React.FC = () => {
                 <div className="flex gap-4 mb-6">
                   <button
                     onClick={handleFindEvents}
-                    className="px-6 py-2 text-white rounded-lg transition shadow-md hover:opacity-90"
+                    className="text-white px-4 py-1 rounded-lg shadow-md hover:opacity-80 transition-colors"
                     style={{ backgroundColor: "#1DDACA" }}
                   >
                     My Events
                   </button>
                   <button
                     onClick={handleCreateEvent}
-                    className="px-6 py-2 text-white rounded-lg transition shadow-md hover:opacity-90"
+                    className="px-6 py-2 text-white rounded-lg transition shadow-md hover:opacity-80"
                     style={{ backgroundColor: "#1DDACA" }}
                   >
                     Create Event
