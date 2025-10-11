@@ -28,7 +28,7 @@ const page: React.FC = () => {
   ];
   
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen" style={{ backgroundColor: "#A8F0EB" }}>
       {/* Navbar */}
       <div className="absolute top-2 left-4 z-50">
         <Navbar />
