@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef , useMemo} from "react";
 import { createClient } from "../../utils/supabase/client";
 import Navbar from "../components/Navbar";
 
@@ -7,6 +7,7 @@ const MOCK_EVENT_ID = "f81d4fae-7dec-11d0-a765-00a0c91e6bf6";
 const MOCK_CHAT_ID = "a8e019cc-a8c7-4da8-9a22-45abe5c87b71";
 
 const Page = () => {
+  const supabase = useMemo(() => createClient(), []);
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<{ sender_id: string; content: string }[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
@@ -15,7 +16,6 @@ const Page = () => {
   // fetch current user
   useEffect(() => {
     const fetchUser = async () => {
-      const supabase = createClient();
       const { data } = await supabase.auth.getUser();
       if (data.user) setUserId(data.user.id);
     };
@@ -26,7 +26,6 @@ const Page = () => {
   // fetch existing messages
   useEffect(() => {
   const fetchMsgs = async () => {
-    const supabase = createClient();
     const { data, error } = await supabase
       .from("messages")
       .select("*")
@@ -36,12 +35,30 @@ const Page = () => {
       if (error) {
         console.error("Fetch error:", error.message);
       } else if (data) {
-        setMessages(data);
+        setMessages(data);  
       }
   };
 
   fetchMsgs();
 }, []);
+
+  useEffect(() => {
+    const channel = supabase
+    .channel("live_updates")
+    .on("postgres_changes",
+      {event:"INSERT", schema: "public", table: "messages", filter: `chat_id=eq.${MOCK_CHAT_ID}`},
+      (payload) => {
+        setMessages((prev) => [...prev, payload.new as {sender_id: string, content: string}]);
+      }
+    )
+    .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+      
+    };
+  }, [MOCK_CHAT_ID]);
+
 
   // auto-scroll when messages update
   useEffect(() => {
@@ -54,13 +71,11 @@ const Page = () => {
   const handleSend = async () => {
     if (!input.trim()) return;
 
-    const supabase = createClient();
     const { data } = await supabase.auth.getUser();
     const user = data.user;
     if (!user) return;
 
     const USER_ID = user.id;
-    setMessages((prev) => [...prev, { sender_id: USER_ID, content: input }]);
 
     const { error } = await supabase.from("messages").insert([
       {
@@ -69,7 +84,6 @@ const Page = () => {
         content: input,
       },
     ]);
-
     setInput("");
     if (error) console.error("Insert error:", error.message, error.details, error.hint);
 
