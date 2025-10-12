@@ -12,8 +12,10 @@ export default function Home() {
         <Link href="/profile">my profile</Link>
         <br />
         <Link href="/events">Events</Link>
-        
-        <Link href="/groupchat" className="p-20">temporary route to gc</Link>  
+        <br />
+        <Link href="/groupchat" className="p-20">temporary route to gc</Link> 
+        <br />
+        <Link href="/admin">temporary admin controls</Link> 
       </div>
       </main>
   );

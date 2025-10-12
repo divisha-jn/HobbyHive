@@ -12,6 +12,7 @@ const Navbar = () => {
                         <li><Link href="/profile">Profile</Link></li>
                         <li><Link href="/events">Events</Link></li>
                         <li><Link href="/groupchat">Groupchats</Link></li>
+                        <li><Link href="/admin">AdminControls</Link></li>
 
                     </ul>
             </details>
