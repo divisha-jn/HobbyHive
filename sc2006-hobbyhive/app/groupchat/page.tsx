@@ -9,7 +9,7 @@ const MOCK_CHAT_ID = "a8e019cc-a8c7-4da8-9a22-45abe5c87b71";
 const Page = () => {
   const supabase = useMemo(() => createClient(), []);
   const [input, setInput] = useState("");
-  const [messages, setMessages] = useState<{ sender_id: string; content: string }[]>([]);
+  const [messages, setMessages] = useState<any[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
@@ -28,7 +28,7 @@ const Page = () => {
   const fetchMsgs = async () => {
     const { data, error } = await supabase
       .from("messages")
-      .select("*")
+      .select("id, chat_id, sender_id, content, created_at, profiles:sender_id(username)")
       .eq("chat_id", MOCK_CHAT_ID)
       .order("created_at", { ascending: true });
 
@@ -42,13 +42,20 @@ const Page = () => {
   fetchMsgs();
 }, []);
 
+  //real time updates
   useEffect(() => {
     const channel = supabase
     .channel("live_updates")
     .on("postgres_changes",
       {event:"INSERT", schema: "public", table: "messages", filter: `chat_id=eq.${MOCK_CHAT_ID}`},
-      (payload) => {
-        setMessages((prev) => [...prev, payload.new as {sender_id: string, content: string}]);
+      async (payload) => {
+        const {data:profile} = await supabase
+        .from("profiles")
+        .select("username") 
+        .eq("id",payload.new.sender_id)
+        .single();
+
+        setMessages((prev) => [...prev, {...payload.new, profiles: profile}]);
       }
     )
     .subscribe();
@@ -131,7 +138,7 @@ const Page = () => {
               messages.map((msg, idx) => (
                 <div key={idx}>
                   <div className={`${msg.sender_id === userId ? "chat chat-start" : "chat chat-end"}`}>
-                    <div className="chat chat-header">{msg.sender_id}</div>
+                    <div className="chat chat-header">{msg.profiles?.username}</div>
                     <p className="chat-bubble">{msg.content}</p>
                   </div>
                 </div>
