@@ -1,8 +1,16 @@
 "use client";
-import React, { useState } from "react";
-import Header from '../components/header'
+
+import React, { useState, useEffect } from "react";
+import Header from "../components/header";
 import Navbar from "../components/Navbar";
 import { useRouter } from "next/navigation";
+import {
+  getCurrentUser,
+  fetchProfile,
+  updateUsername,
+  updatePassword,
+  uploadProfilePicture,
+} from "@/utils/supabase/account";
 
 interface FollowingUser {
   id: number;
@@ -17,12 +25,18 @@ interface GroupChat {
 }
 
 const ProfilePage: React.FC = () => {
-  const [isEditing, setIsEditing] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [profile, setProfile] = useState<any>(null);
+  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [profilePic, setProfilePic] = useState<File | null>(null);
   const [address, setAddress] = useState("50 Nanyang Ave,\nSingapore 639798");
-  const [username, setUsername] = useState("johndoe");
-  const [email, setEmail] = useState("johndoe123@email.com");
-  const [password, setPassword] = useState("pa$$word123!");
+  const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState("");
+  const [isEditing, setIsEditing] = useState(false);
   const router = useRouter();
+
   const following: FollowingUser[] = [
     { id: 1, name: "Alan Wong", avatar: "https://i.pravatar.cc/150?img=12" },
   ];
@@ -31,19 +45,22 @@ const ProfilePage: React.FC = () => {
     { id: 1, name: "Alan's Badminton ...", avatar: "https://i.pravatar.cc/150?img=13" },
   ];
 
-  const handleEditProfile = () => {
-    setIsEditing(!isEditing);
-  };
+  // Load user and profile data
+  useEffect(() => {
+    const loadUser = async () => {
+      const currentUser = await getCurrentUser();
+      if (!currentUser) return;
+      setUser(currentUser);
+      const profileData = await fetchProfile(currentUser.id);
+      setProfile(profileData);
+      setUsername(profileData.username);
+      setEmail(currentUser.email ?? "");
+    };
+    loadUser();
+  }, []);
 
-  const handleFindEvents = () => {
-    console.log("Navigate to find events");
-    router.push('/MyEvents');
-  };
-
-  const handleCreateEvent = () => {
-    console.log("Navigate to create event");
-    // router.push('/create-event');
-  };
+  const handleFindEvents = () => router.push("/MyEvents");
+  const handleCreateEvent = () => router.push("/create-event");
 
   const handleFollowingClick = (user: FollowingUser) => {
     console.log("Clicked on following user:", user.name);
@@ -55,18 +72,66 @@ const ProfilePage: React.FC = () => {
     // router.push(`/chat/${group.id}`);
   };
 
+  // Supabase update logic
+  const handleUpdate = async () => {
+    if (!user) return;
+    setLoading(true);
+    setStatus("");
+
+    try {
+      if (username !== profile.username) {
+        await updateUsername(user.id, username);
+        setStatus((s) => s + " ✅ Username updated.\n");
+      }
+
+      if (password.length > 0) {
+        try {
+          await updatePassword(password);
+          setStatus((s) => s + " 🔒 Password updated.\n");
+        } catch (err: any) {
+          if (err.message.includes("New password should be different")) {
+            setStatus((s) => s + " ⚠️ Password unchanged (same as current).\n");
+          } else {
+            setStatus("❌ Error: " + err.message);
+          }
+        }
+      }
+
+      if (profilePic) {
+        const publicUrl = await uploadProfilePicture(user.id, profilePic);
+        const cacheBustedUrl = `${publicUrl}?t=${Date.now()}`;
+        setProfile((p: any) => ({ ...p, profile_picture: cacheBustedUrl }));
+        setStatus((s) => s + " 🖼️ Profile picture updated.\n");
+      }
+
+      setPassword("");
+    } catch (err: any) {
+      setStatus("❌ Error: " + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEditProfile = async () => {
+    if (isEditing) {
+      await handleUpdate();
+    }
+    setIsEditing(!isEditing);
+  };
+
+  if (!user) return <p className="p-6 text-center">Loading...</p>;
+
   return (
     <div className="min-h-screen" style={{ backgroundColor: "#A8F0EB" }}>
-
       {/* Navbar */}
       <div className="absolute top-2 left-4 z-50">
         <Navbar />
       </div>
+
       {/* Header */}
       <Header />
 
       {/* Main Content */}
-
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Column - Profile Info */}
@@ -74,30 +139,83 @@ const ProfilePage: React.FC = () => {
             <div className="flex flex-col md:flex-row gap-6">
               {/* Profile Picture */}
               <div className="flex flex-col items-center">
-                <div className="w-40 h-40 bg-black rounded-full flex items-center justify-center mb-4">
-                  <svg className="w-24 h-24 text-white" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-                  </svg>
+                <div className="flex flex-col items-center">
+                  <div className="w-40 h-40 bg-gray-200 rounded-full flex items-center justify-center mb-4 overflow-hidden">
+                    {profile?.profile_picture ? (
+                      <img
+                        src={`${profile.profile_picture}?t=${Date.now()}`}
+                        alt="Profile"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <svg
+                        className="w-24 h-24 text-gray-500"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    )}
+                  </div>
+
+                  {isEditing && (
+                    <div className="flex flex-col items-center mt-4 mb-4"> {/* Added margin top/bottom */}
+                      <label
+                        htmlFor="profilePic"
+                        className="cursor-pointer bg-blue-500 hover:bg-blue-600 text-white text-sm px-4 py-2 rounded-md shadow-sm transition"
+                      >
+                        Upload New Photo
+                      </label>
+                      <input
+                        id="profilePic"
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => setProfilePic(e.target.files?.[0] ?? null)}
+                        className="hidden"
+                      />
+
+                      {profilePic && (
+                        <p className="text-xs text-gray-600 mt-2 truncate max-w-[10rem]">
+                          {profilePic.name}
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
+
+
                 <button
                   onClick={handleEditProfile}
                   className="px-6 py-2 text-white rounded-lg transition shadow-md hover:opacity-80"
                   style={{ backgroundColor: "#1DDACA" }}
+                  disabled={loading}
                 >
-                  ✏️ Edit Profile
+                  {isEditing ? "💾 Save Changes" : "✏️ Edit Profile"}
                 </button>
               </div>
 
-              {/* Stats and Buttons */}
+              {/* Stats and Profile Fields */}
               <div className="flex-1">
                 <div className="flex gap-8 mb-6">
                   <div className="text-center">
                     <div className="text-5xl font-bold">0</div>
-                    <div className="text-sm text-gray-600">Events<br/>Participated</div>
+                    <div className="text-sm text-gray-600">
+                      Events
+                      <br />
+                      Participated
+                    </div>
                   </div>
                   <div className="text-center">
                     <div className="text-5xl font-bold">0</div>
-                    <div className="text-sm text-gray-600">Events<br/>Hosted</div>
+                    <div className="text-sm text-gray-600">
+                      Events
+                      <br />
+                      Hosted
+                    </div>
                   </div>
                 </div>
 
@@ -121,7 +239,9 @@ const ProfilePage: React.FC = () => {
                 {/* Profile Fields */}
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Address
+                    </label>
                     <textarea
                       value={address}
                       onChange={(e) => setAddress(e.target.value)}
@@ -131,7 +251,9 @@ const ProfilePage: React.FC = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Username
+                    </label>
                     <input
                       type="text"
                       value={username}
@@ -141,26 +263,37 @@ const ProfilePage: React.FC = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Email
+                    </label>
                     <input
                       type="email"
                       value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      disabled={!isEditing}
+                      disabled
                       className="w-full px-3 py-2 bg-gray-200 rounded"
                     />
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                    <input
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      disabled={!isEditing}
-                      className="w-full px-3 py-2 bg-gray-200 rounded"
-                    />
-                  </div>
+                  {isEditing && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        New Password
+                      </label>
+                      <input
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="w-full px-3 py-2 bg-gray-200 rounded"
+                      />
+                    </div>
+                  )}
                 </div>
+
+                {/* Status Feedback */}
+                {status && (
+                  <pre className="mt-4 p-3 bg-gray-100 text-sm rounded whitespace-pre-wrap">
+                    {status}
+                  </pre>
+                )}
               </div>
             </div>
           </div>
@@ -186,7 +319,11 @@ const ProfilePage: React.FC = () => {
                       <span className="font-medium">{user.name}</span>
                     </div>
                     <button className="text-gray-500 hover:text-gray-700">
-                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                      <svg
+                        className="w-5 h-5"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
                         <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z" />
                       </svg>
                     </button>
@@ -214,7 +351,11 @@ const ProfilePage: React.FC = () => {
                       <span className="font-medium">{group.name}</span>
                     </div>
                     <button className="text-gray-500 hover:text-gray-700">
-                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                      <svg
+                        className="w-5 h-5"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
                         <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z" />
                       </svg>
                     </button>
