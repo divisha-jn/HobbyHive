@@ -1,98 +1,117 @@
 "use client";
 import React, { useState } from "react";
+import Header from "../components/header";
+import Navbar from "../components/Navbar";
 
-export default function CreateEventPage() {
-  const [formData, setFormData] = useState({
-    title: "",
-    date: "",
-    time: "",
-    location: "",
-    description: "",
-    category: "",
-  });
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+const CreateEvent: React.FC = () => {
+  const [title, setTitle] = useState("");
+  const [date, setDate] = useState("");
+  const [time, setTime] = useState("");
+  const [location, setLocation] = useState("");
+  const [image, setImage] = useState("");
+  const [message, setMessage] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Event created:", formData);
-    alert("Event created successfully!");
-    setFormData({
-      title: "",
-      date: "",
-      time: "",
-      location: "",
-      description: "",
-      category: "",
+    if (!title || !date || !time || !location) {
+      setMessage("Please fill in all required fields.");
+      return;
+    }
+
+    // for now just show success message
+    setMessage("Event created successfully!");
+    console.log({
+      title,
+      date,
+      time,
+      location,
+      image: image || "(default)",
     });
+
+    // Clear form
+    setTitle("");
+    setDate("");
+    setTime("");
+    setLocation("");
+    setImage("");
   };
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gray-50 p-4">
-      <div className="bg-white rounded-xl shadow-lg p-8 w-full max-w-lg">
-        <h1 className="text-3xl font-bold mb-6 text-center">
-          <span style={{ color: "#1DDACA" }}>Create</span> Event
-        </h1>
+    <div className="min-h-screen" style={{ backgroundColor: "#A8F0EB" }}>
+      {/* Navbar */}
+      <div className="absolute top-2 left-4 z-50">
+        <Navbar />
+      </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <input
-            name="title"
-            value={formData.title}
-            onChange={handleChange}
-            placeholder="Event Title"
-            className="w-full border p-2 rounded"
-            required
-          />
-          <input
-            type="date"
-            name="date"
-            value={formData.date}
-            onChange={handleChange}
-            className="w-full border p-2 rounded"
-            required
-          />
-          <input
-            type="time"
-            name="time"
-            value={formData.time}
-            onChange={handleChange}
-            className="w-full border p-2 rounded"
-            required
-          />
-          <input
-            name="location"
-            value={formData.location}
-            onChange={handleChange}
-            placeholder="Event Location"
-            className="w-full border p-2 rounded"
-            required
-          />
-          <input
-            name="category"
-            value={formData.category}
-            onChange={handleChange}
-            placeholder="Event Category"
-            className="w-full border p-2 rounded"
-          />
-          <textarea
-            name="description"
-            value={formData.description}
-            onChange={handleChange}
-            placeholder="Description"
-            className="w-full border p-2 rounded"
-            rows={3}
-          />
+      {/* Header */}
+      <Header />
 
-          <button
-            type="submit"
-            className="w-full py-2 bg-[#1DDACA] text-white font-semibold rounded hover:opacity-90"
-          >
-            Create Event
-          </button>
+      {/* Form container */}
+      <div className="flex justify-center mt-10">
+        <form
+          onSubmit={handleSubmit}
+          className="bg-white shadow-md rounded-md p-6 w-[700px]"
+        >
+          <h2 className="text-2xl font-bold mb-4 text-center">
+            Create New Event
+          </h2>
+
+          <div className="flex flex-col gap-3">
+            <input
+              type="text"
+              placeholder="Event Title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="border border-gray-300 rounded p-2"
+              required
+            />
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="border border-gray-300 rounded p-2"
+              required
+            />
+            <input
+              type="time"
+              value={time}
+              onChange={(e) => setTime(e.target.value)}
+              className="border border-gray-300 rounded p-2"
+              required
+            />
+            <input
+              type="text"
+              placeholder="Location"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              className="border border-gray-300 rounded p-2"
+              required
+            />
+            <input
+              type="text"
+              placeholder="Image URL (optional)"
+              value={image}
+              onChange={(e) => setImage(e.target.value)}
+              className="border border-gray-300 rounded p-2"
+            />
+
+            <button
+              type="submit"
+              className="bg-teal-400 text-white px-4 py-2 rounded hover:bg-teal-500 transition-colors"
+            >
+              Create Event
+            </button>
+
+            {message && (
+              <p className="text-center mt-2 font-semibold text-gray-700">
+                {message}
+              </p>
+            )}
+          </div>
         </form>
       </div>
     </div>
   );
-}
+};
+
+export default CreateEvent;
