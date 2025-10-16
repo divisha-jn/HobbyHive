@@ -1,7 +1,8 @@
 "use client";
+
 import React, { useState } from "react";
-import Header from "../components/header";
-import Navbar from "../components/Navbar";
+import Header from "../components/Header"; // make sure this is also a client component
+import Navbar from "../components/Navbar"; // make sure this is also a client component
 
 const CreateEvent: React.FC = () => {
   const [title, setTitle] = useState("");
@@ -11,14 +12,15 @@ const CreateEvent: React.FC = () => {
   const [image, setImage] = useState("");
   const [message, setMessage] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    console.log("Submit clicked"); // debugging
+
     if (!title || !date || !time || !location) {
       setMessage("Please fill in all required fields.");
       return;
     }
 
-    // for now just show success message
     setMessage("Event created successfully!");
     console.log({
       title,
@@ -37,7 +39,7 @@ const CreateEvent: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: "#A8F0EB" }}>
+    <div className="min-h-screen bg-[#A8F0EB] relative">
       {/* Navbar */}
       <div className="absolute top-2 left-4 z-50">
         <Navbar />
@@ -115,3 +117,4 @@ const CreateEvent: React.FC = () => {
 };
 
 export default CreateEvent;
+
