@@ -47,7 +47,8 @@ export default function CreateEvent() {
       
       // Redirect to my-events page after successful creation
       setTimeout(() => {
-        router.push("/my-events");
+        router.push("/MyEvents");
+
       }, 1500);
 
     } catch (error) {
