@@ -4,9 +4,11 @@ import React from "react";
 import Link from "next/link";
 import Header from "../components/header";
 import Navbar from "../components/Navbar";
+import AuthWrapper from "../components/AuthWrapper";
 
 const AdminDashboard: React.FC = () => {
   return (
+    <AuthWrapper allowedRoles={["admin"]}>
     <div className="min-h-screen" style={{ backgroundColor: "#A8F0EB" }}>
       {/* Navbar */}
       <div className="absolute top-2 left-4 z-50">
@@ -94,6 +96,7 @@ const AdminDashboard: React.FC = () => {
         </div>
       </div>
     </div>
+    </AuthWrapper>
   );
 };
 

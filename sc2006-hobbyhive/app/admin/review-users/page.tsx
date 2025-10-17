@@ -5,6 +5,7 @@ import { createClient } from "@/utils/supabase/client";
 import Header from "@/app/components/header";
 import Navbar from "@/app/components/Navbar";
 import { useRouter } from "next/navigation";
+import AuthWrapper from "@/app/components/AuthWrapper";
 
 interface User {
   id: string;
@@ -138,6 +139,7 @@ const ReviewUsers: React.FC = () => {
   };
 
   return (
+    <AuthWrapper allowedRoles={["admin"]}>
     <div className="min-h-screen" style={{ backgroundColor: "#A8F0EB" }}>
       <div className="absolute top-2 left-4 z-50">
         <Navbar />
@@ -250,6 +252,7 @@ const ReviewUsers: React.FC = () => {
         )}
       </div>
     </div>
+    </AuthWrapper>
   );
 };
 
