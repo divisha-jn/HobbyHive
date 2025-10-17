@@ -53,7 +53,7 @@ export default function CreateEvent() {
   };
 
   return (
-    <div className="min-h-screen bg-[#A8F0EB] relative">
+    <div className="bg-gradient-to-r from-teal-400 to-cyan-500">
       <div className="absolute top-2 left-4 z-50">
         <Navbar />
       </div>

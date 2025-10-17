@@ -30,9 +30,14 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-teal-100 to-white">
-      {/* Navbar at top */}
+  
+      {/* Navbar */}
+      <div className="absolute top-2 left-4 z-50">
+        <Navbar />
+      </div>
+
+      {/* Header */}
       <Header />
-      <Navbar />
 
       {/* Hero section */}
       <section className="text-center py-20 bg-gradient-to-r from-teal-400 to-cyan-500 text-white shadow-md">

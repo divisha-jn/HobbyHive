@@ -102,7 +102,7 @@ const EventsPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: "#A8F0EB" }}>
+    <div className="bg-gradient-to-r from-teal-400 to-cyan-500">
       {/* Navbar */}
       <div className="absolute top-2 left-4 z-50">
         <Navbar />
