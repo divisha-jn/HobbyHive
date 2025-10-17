@@ -120,6 +120,18 @@ const ProfilePage: React.FC = () => {
     setIsEditing(!isEditing);
   };
 
+    const handleCancelEdit = () => {
+    // Reset all fields to their original values
+    if (profile) {
+      setUsername(profile.username);
+    }
+    //setAddress();
+    setPassword("");
+    setProfilePic(null);
+    setIsEditing(false);
+    setStatus("");
+  };
+
   if (!user) return <p className="p-6 text-center">Loading...</p>;
 
   return (
@@ -197,13 +209,23 @@ const ProfilePage: React.FC = () => {
                 >
                   {isEditing ? "💾 Save Changes" : "✏️ Edit Profile"}
                 </button>
-              </div>
+
+                {isEditing && (
+                    <button
+                      onClick={handleCancelEdit}
+                      className="border border-red-400 px-4 py-1 rounded hover:bg-red-100 rounded-lg transition shadow-md hover:opacity-80 text-sm mt-2"
+                      disabled={loading}
+                    >
+                      ❌ Cancel
+                    </button>
+                  )}
+                </div>
 
               {/* Stats and Profile Fields */}
               <div className="flex-1">
-                <div className="flex gap-8 mb-6">
+                <div className="flex gap-20 mb-6">
                   <div className="text-center">
-                    <div className="text-5xl font-bold">0</div>
+                    <div className="text-5xl font-bold">1</div>
                     <div className="text-sm text-gray-600">
                       Events
                       <br />
@@ -211,7 +233,7 @@ const ProfilePage: React.FC = () => {
                     </div>
                   </div>
                   <div className="text-center">
-                    <div className="text-5xl font-bold">0</div>
+                    <div className="text-5xl font-bold">1</div>
                     <div className="text-sm text-gray-600">
                       Events
                       <br />
@@ -230,7 +252,7 @@ const ProfilePage: React.FC = () => {
                   </button>
                   <button
                     onClick={handleCreateEvent}
-                    className="px-6 py-2 text-white rounded-lg transition shadow-md hover:opacity-80"
+                    className="px-4 py-2 text-white rounded-lg transition shadow-md hover:opacity-80"
                     style={{ backgroundColor: "#1DDACA" }}
                   >
                     Create Event
