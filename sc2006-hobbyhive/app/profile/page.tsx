@@ -60,7 +60,8 @@ const ProfilePage: React.FC = () => {
   }, []);
 
   const handleFindEvents = () => router.push("/MyEvents");
-  const handleCreateEvent = () => router.push("/create-event");
+  const handleCreateEvent = () => router.push("/host/CreateEvent");
+  
 
   const handleFollowingClick = (user: FollowingUser) => {
     console.log("Clicked on following user:", user.name);

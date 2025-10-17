@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import Header from "../../components/Header";
+import Header from "../../components/header";
 import Navbar from "../../components/Navbar";
 
 export default function CreateEvent() {
@@ -41,7 +41,7 @@ export default function CreateEvent() {
 
       await new Promise(resolve => setTimeout(resolve, 1000));
 
-      // ✅ Set success
+      // Set success
       setSuccess(true);
       setMessage("Event created successfully!");
     } catch (error) {
