@@ -28,7 +28,7 @@ const page: React.FC = () => {
   ];
   
   return (
-    <div className="min-h-screen" style={{ backgroundColor: "#A8F0EB" }}>
+   <div className="min-h-screen bg-gradient-to-r from-teal-400 to-cyan-500">
       {/* Navbar */}
       <div className="absolute top-2 left-4 z-50">
         <Navbar />
@@ -141,15 +141,23 @@ const page: React.FC = () => {
       </div>
 
       <div className="flex justify-center mt-4">
-        <a
-          href="#"
-          className="text-teal-500 font-semibold underline"
-        >
-          {activeTab === "attending"
-            ? "Find More Events Here!"
-            : "Host More Events!"}
-        </a>
+        {activeTab === "attending" ? (
+          <Link
+              href="/events" 
+              className="text-black-500 font-semibold underline"
+          >
+            Find More Events Here!
+          </Link>
+        ) : (
+          <Link
+              href="/host/CreateEvent" 
+              className="text-black-500 font-semibold underline"
+          >
+            Host More Events!
+          </Link>
+        )}
       </div>
+      
     </div>
   );
 };
