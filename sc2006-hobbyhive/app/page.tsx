@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Navbar from "./components/Navbar";
 import Header from "./components/header";
@@ -9,7 +9,35 @@ import { createClient } from "@/utils/supabase/client";
 export default function Home() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<any[]>([]);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [loading, setLoading] = useState(true);
   const supabase = createClient();
+
+  // Check if user is admin
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+
+      if (profile?.role === "admin") {
+        setIsAdmin(true);
+      }
+      
+      setLoading(false);
+    };
+
+    checkAdminStatus();
+  }, []);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,7 +73,7 @@ export default function Home() {
           Discover & Join Events Around You
         </h1>
         <p className="text-lg mb-6 max-w-2xl mx-auto">
-          Whether you’re looking to attend, organize, or moderate — find what
+          Whether you're looking to attend, organize, or moderate — find what
           inspires you.
         </p>
 
@@ -112,7 +140,7 @@ export default function Home() {
             from local gatherings to large-scale activities — all in one place.
           </p>
           <p className="text-gray-600">
-            Whether you’re an attendee, organizer, or moderator, we make event management
+            Whether you're an attendee, organizer, or moderator, we make event management
             simple, social, and meaningful.
           </p>
         </div>
@@ -127,14 +155,15 @@ export default function Home() {
           <Link href="/events" className="hover:text-teal-600">
             Browse Events
           </Link>
-          <Link href="/admin" className="hover:text-teal-600">
-            Admin Panel
-          </Link>
+          {/* Only show Admin Panel link if user is admin */}
+          {!loading && isAdmin && (
+            <Link href="/admin" className="hover:text-teal-600">
+              Admin Panel
+            </Link>
+          )}
         </div>
         <p className="text-sm mt-4">© {new Date().getFullYear()} HobbyHive</p>
       </footer>
     </main>
   );
 }
-
-
