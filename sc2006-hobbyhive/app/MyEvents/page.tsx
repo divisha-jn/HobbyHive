@@ -2,11 +2,29 @@
 import React, { useState } from "react";
 import Header from "../components/header";
 import Navbar from "../components/Navbar";
-import Link from "next/link";      
+import Link from "next/link";
 
 
-const page: React.FC = () => {
+interface Attendee {
+  id: number;
+  name: string;
+  profilePic: string;
+}
+
+const Page: React.FC = () => {
   const [activeTab, setActiveTab] = useState<"attending" | "hosting">("attending");
+  const [showAttendeeModal, setShowAttendeeModal] = useState(false);
+
+
+  const attendees: Attendee[] = [
+    { id: 1, name: "Me", profilePic: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face" },
+    { id: 2, name: "Sarah Chen", profilePic: "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face" },
+    { id: 3, name: "Mike Johnson", profilePic: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face" },
+    { id: 4, name: "Emily Davis", profilePic: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face" },
+    { id: 5, name: "David Kim", profilePic: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop&crop=face" },
+    { id: 6, name: "Lisa Wang", profilePic: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop&crop=face" },
+  ];
+
   const attendingEvents = [
     {
       title: "Badminton @ Bukit Panjang CC",
@@ -26,13 +44,14 @@ const page: React.FC = () => {
       image: "https://images.unsplash.com/photo-1546519638-68e109498ffc?w=800&h=600&fit=crop",
     },
   ];
-  
+
   return (
-   <div className="min-h-screen bg-gradient-to-r from-teal-400 to-cyan-500">
+    <div className="min-h-screen bg-gradient-to-r from-teal-400 to-cyan-500">
       {/* Navbar */}
       <div className="absolute top-2 left-4 z-50">
         <Navbar />
       </div>
+      
       {/* Header */}
       <Header />
 
@@ -81,7 +100,7 @@ const page: React.FC = () => {
             }}
           />
           <div className="flex-1">
-            <h2 className="font-semibold text-sm">
+            <h2 className="font-semibold text-lg">
               {activeTab === "attending"
                 ? attendingEvents[0].title
                 : hostingEvents[0].title}
@@ -104,9 +123,12 @@ const page: React.FC = () => {
             ) : (
               <p>
                 Attendees: <b>{hostingEvents[0].attendees}</b> |{" "}
-                <a href="#" className="text-teal-500 underline">        
-                  Attendees List
-                </a>
+                <button 
+                  onClick={() => setShowAttendeeModal(true)}
+                  className="text-teal-500 underline hover:text-teal-600 transition-colors"
+                >        
+                  Attendee List
+                </button>
               </p>
             )}
           </div>
@@ -140,26 +162,82 @@ const page: React.FC = () => {
         </div>
       </div>
 
+      {/* Attendee List Modal */}
+      {showAttendeeModal && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[80vh] overflow-hidden">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-teal-400 to-cyan-500 p-4 text-white">
+              <div className="flex justify-between items-center">
+                <h2 className="text-xl font-bold">Attendee List</h2>
+                <button
+                  onClick={() => setShowAttendeeModal(false)}
+                  className="text-white hover:text-gray-200 text-2xl font-bold transition-colors"
+                >
+                  ×
+                </button>
+              </div>
+              <p className="text-teal-100 text-sm mt-1">
+                {hostingEvents[0].title}
+              </p>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-4 max-h-96 overflow-y-auto">
+              <div className="space-y-3">
+                {attendees.map((attendee) => (
+                  <div
+                    key={attendee.id}
+                    className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded-lg transition-colors"
+                  >
+                    <img
+                      src={attendee.profilePic}
+                      alt={attendee.name}
+                      className="w-10 h-10 rounded-full object-cover border-2 border-teal-200"
+                    />
+                    <span className="font-medium text-gray-800">
+                      {attendee.name}
+                    </span>
+                    {attendee.name === "Me" && (
+                      <span className="ml-auto bg-teal-100 text-teal-800 text-xs px-2 py-1 rounded-full font-medium">
+                        Host
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="bg-gray-50 px-4 pt-1 pb-3 border-t border-gray-200">
+              <div className="flex justify-between text-md text-gray-600">
+                <span>Total attendees: {attendees.length}</span>
+                <span>Capacity: 8</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex justify-center mt-4">
         {activeTab === "attending" ? (
           <Link
-              href="/events" 
-              className="text-black-500 font-semibold underline"
+            href="/events" 
+            className="text-black-500 font-semibold underline"
           >
             Find More Events Here!
           </Link>
         ) : (
           <Link
-              href="/host/CreateEvent" 
-              className="text-black-500 font-semibold underline"
+            href="/host/CreateEvent" 
+            className="text-black-500 font-semibold underline"
           >
             Host More Events!
           </Link>
         )}
       </div>
-      
     </div>
   );
 };
 
-export default page;
+export default Page;
