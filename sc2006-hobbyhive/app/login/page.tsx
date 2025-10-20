@@ -22,14 +22,84 @@ export default function LoginPage() {
 
     setLoading(true);
     const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
+    
+    // Step 1: Attempt login
+    const { data, error: loginError } = await supabase.auth.signInWithPassword({ 
+      email, 
+      password 
+    });
 
-    if (error) {
-      setError(error.message);
+    if (loginError) {
+      setLoading(false);
+      setError(loginError.message);
       return;
     }
 
+    // Step 2: Check if user is banned
+    console.log("[Login] Checking ban status for user:", data.user.id);
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("is_banned, ban_reason, banned_until")
+      .eq("id", data.user.id)
+      .single();
+
+    if (profileError) {
+      console.error("[Login] Profile fetch error:", profileError);
+      setLoading(false);
+      setError("Failed to load profile. Please try again.");
+      return;
+    }
+
+    console.log("[Login] User ban status:", profile);
+
+    // Step 3: Handle ban status
+    if (profile.is_banned) {
+      // Check if it's a temporary ban that has expired
+      if (profile.banned_until) {
+        const banExpiry = new Date(profile.banned_until);
+        const now = new Date();
+        
+        console.log("[Login] Ban expiry:", banExpiry, "Current time:", now);
+        
+        if (now < banExpiry) {
+          // Still banned - deny access
+          console.log("[Login] User is still banned, logging out");
+          await supabase.auth.signOut();
+          setLoading(false);
+          const daysLeft = Math.ceil((banExpiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+          setError(
+            `Your account is banned for ${daysLeft} more day${daysLeft !== 1 ? 's' : ''}. Reason: ${profile.ban_reason || "No reason provided"}`
+          );
+          return;
+        } else {
+          // Ban expired - automatically unban the user
+          console.log("[Login] Ban expired, automatically unbanning user");
+          await supabase
+            .from("profiles")
+            .update({ 
+              is_banned: false, 
+              ban_reason: null, 
+              banned_until: null 
+            })
+            .eq("id", data.user.id);
+          
+          // Allow login to proceed
+        }
+      } else {
+        // Permanent ban - deny access
+        console.log("[Login] User is permanently banned, logging out");
+        await supabase.auth.signOut();
+        setLoading(false);
+        setError(
+          `Your account is permanently banned. Reason: ${profile.ban_reason || "No reason provided"}. Contact support if you believe this is a mistake.`
+        );
+        return;
+      }
+    }
+
+    // Step 4: If not banned (or ban expired), proceed to homepage
+    console.log("[Login] User is not banned, proceeding to homepage");
+    setLoading(false);
     router.push("/");
   };
 
@@ -106,7 +176,22 @@ export default function LoginPage() {
             />
           </div>
 
-          {error && <p style={{ color: "red", marginBottom: "12px" }}>{error}</p>}
+          {error && (
+            <div 
+              style={{ 
+                color: "red", 
+                marginBottom: "12px", 
+                fontSize: "0.9rem",
+                textAlign: "left",
+                padding: "10px",
+                backgroundColor: "#fee",
+                borderRadius: "6px",
+                border: "1px solid #fcc"
+              }}
+            >
+              {error}
+            </div>
+          )}
 
           <button
             type="submit"
@@ -119,7 +204,8 @@ export default function LoginPage() {
               fontWeight: "600",
               border: "none",
               borderRadius: "6px",
-              cursor: "pointer",
+              cursor: loading ? "not-allowed" : "pointer",
+              opacity: loading ? 0.7 : 1,
             }}
           >
             {loading ? "Logging in..." : "Login"}
@@ -127,7 +213,7 @@ export default function LoginPage() {
         </form>
 
         <p style={{ marginTop: "20px", fontSize: "0.9rem" }}>
-          Don’t have an account?{" "}
+          Don't have an account?{" "}
           <Link href="/register" style={{ color: "#1DDACA", textDecoration: "underline" }}>
             Register Here!
           </Link>
@@ -150,103 +236,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
-
-
-/* ----------------------previous code before redesign --------------------- 
-"use client";
-import React, { useState } from "react";
-import Link from "next/link";
-import { createClient } from "@/utils/supabase/client";
-import { useRouter } from "next/navigation";
-
-export default function LoginPage() {
-  const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-
-    if (!email || !password) {
-      setError("Both fields are required.");
-      return;
-    }
-
-    setLoading(true);
-
-    const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    setLoading(false);
-
-    if (error) {
-      setError(error.message);
-      return;
-    }
-
-    // ✅ Login success → go to homepage
-    router.push("/");
-  };
-
-  return (
-    <div className="login-container">
-      <h1 className="title" style={{ fontSize: "3em", fontWeight: 700 }}>
-        <span style={{ color: "#1DDACA" }}>Hobby</span>
-        <span>Hive</span>
-      </h1>
-      <h2 className="title">
-        <b>Account Log In</b>
-      </h2>
-
-      <form onSubmit={handleSubmit} autoComplete="off">
-        <div style={{ marginBottom: 16 }}>
-          <label htmlFor="email">Email:</label>
-          <br />
-          <input
-            className="input"
-            type="email"
-            id="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            autoComplete="email"
-          />
-        </div>
-
-        <div style={{ marginBottom: 16 }}>
-          <label htmlFor="password">Password:</label>
-          <br />
-          <input
-            className="input"
-            type="password"
-            id="password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            autoComplete="current-password"
-          />
-        </div>
-
-        {error && <div style={{ color: "red", marginBottom: 12 }}>{error}</div>}
-
-        <button type="submit" className="confirm-button" disabled={loading}>
-          {loading ? "Logging in..." : "Login"}
-        </button>
-      </form>
-
-      <div style={{ textAlign: "center", marginTop: 12 }}>
-        <Link href="/register">Don&apos;t have an account? Register here</Link>
-      </div>
-    </div>
-    
-  );
-}
-  */
-
