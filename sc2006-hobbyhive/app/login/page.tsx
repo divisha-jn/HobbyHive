@@ -39,7 +39,7 @@ export default function LoginPage() {
     console.log("[Login] Checking ban status for user:", data.user.id);
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
-      .select("is_banned, ban_reason, banned_until")
+      .select("is_banned, ban_reason, banned_until, role")
       .eq("id", data.user.id)
       .single();
 
@@ -97,10 +97,20 @@ export default function LoginPage() {
       }
     }
 
-    // Step 4: If not banned (or ban expired), proceed to homepage
-    console.log("[Login] User is not banned, proceeding to homepage");
-    setLoading(false);
-    router.push("/");
+    // Step 4: If not banned (or ban expired), check role and redirect
+    console.log("[Login] User is not banned, checking role...");
+
+    // Check if user is admin
+    if (profile.role === "admin") {
+      console.log("[Login] Admin user, redirecting to admin dashboard");
+      setLoading(false);
+      router.push("/admin");
+    } else {
+      console.log("[Login] Regular user, redirecting to homepage");
+      setLoading(false);
+      router.push("/");
+}
+
   };
 
   return (

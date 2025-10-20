@@ -101,8 +101,16 @@ const ModerateEvents: React.FC = () => {
   return (
     <AuthWrapper allowedRoles={["admin"]}>
         <div className="min-h-screen" style={{ backgroundColor: "#A8F0EB" }}>
-          <div className="absolute top-2 left-4 z-50">
-            <Navbar />
+          <div className="absolute top-4 right-4">
+            <button
+              onClick={async () => {
+                await createClient().auth.signOut();
+                router.push("/login");
+              }}
+              className="px-4 py-2 bg-red-600 text-white rounded-lg shadow-md hover:bg-red-700"
+            >
+              Logout
+            </button>
           </div>
           <Header />
 
