@@ -177,6 +177,7 @@ export default function MyEvents() {
                 <h2 className="font-semibold text-lg">{event.title}</h2>
                 <p>Date: {event.date}</p>
                 <p>Time: {event.time}</p>
+                <p>Status: <span className="font-semibold">{event.status}</span></p>
                 <p>
                   Attendees: <b>{event.attendees}</b> |{" "}
                   <button
