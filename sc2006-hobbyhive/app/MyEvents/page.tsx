@@ -11,11 +11,13 @@ interface Event {
   time: string;
   image: string;
   attendees: string;
+  attendeeNames?: string[]; // new field for attendee names
 }
 
 export default function MyEvents() {
   const [activeTab, setActiveTab] = useState<"attending" | "hosting">("attending");
   const [showAttendeeModal, setShowAttendeeModal] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [hostedEvents, setHostedEvents] = useState<Event[]>([]);
 
   const attendingEvents = [
@@ -24,7 +26,8 @@ export default function MyEvents() {
       date: "26 August 2026",
       time: "20:00",
       host: "Alan Wong",
-      image: "https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?w=800&h=600&fit=crop",
+      image:
+        "https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?w=800&h=600&fit=crop",
     },
   ];
 
@@ -33,8 +36,11 @@ export default function MyEvents() {
     setHostedEvents(stored);
   }, []);
 
+  // Sample attendees for demo — ideally this would come from Supabase later
+  const defaultAttendees = ["You"];
+
   return (
-    <div className="min-h-screen bg-gradient-to-r from-teal-400 to-cyan-500">
+    <div className="min-h-screen bg-gradient-to-r from-teal-400 to-cyan-500 relative">
       <div className="absolute top-2 left-4 z-50">
         <Navbar />
       </div>
@@ -110,7 +116,10 @@ export default function MyEvents() {
                 <p>
                   Attendees: <b>{event.attendees}</b> |{" "}
                   <button
-                    onClick={() => setShowAttendeeModal(true)}
+                    onClick={() => {
+                      setSelectedEvent(event);
+                      setShowAttendeeModal(true);
+                    }}
                     className="text-teal-500 underline hover:text-teal-600 transition"
                   >
                     Attendee List
@@ -150,12 +159,41 @@ export default function MyEvents() {
               Find More Events Here!
             </Link>
           ) : (
-            <Link href="/host/CreateEvent" className="text-black font-semibold underline">
+            <Link
+              href="/host/CreateEvent"
+              className="text-black font-semibold underline"
+            >
               Host More Events!
             </Link>
           )}
         </div>
       </div>
+
+      {/* ✅ Modal for Attendee List */}
+      {showAttendeeModal && selectedEvent && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-[400px]">
+            <h2 className="text-xl font-semibold mb-4">
+              Attendees for {selectedEvent.title}
+            </h2>
+
+            <ul className="list-disc pl-6 text-gray-700">
+              {(selectedEvent.attendeeNames || defaultAttendees).map(
+                (name, i) => (
+                  <li key={i}>{name}</li>
+                )
+              )}
+            </ul>
+
+            <button
+              onClick={() => setShowAttendeeModal(false)}
+              className="mt-6 bg-teal-500 text-white px-4 py-2 rounded hover:bg-teal-600 transition"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
