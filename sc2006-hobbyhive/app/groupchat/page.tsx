@@ -6,12 +6,15 @@ import Navbar from "../components/Navbar";
 const MOCK_EVENT_ID = "f81d4fae-7dec-11d0-a765-00a0c91e6bf6";
 const MOCK_CHAT_ID = "a8e019cc-a8c7-4da8-9a22-45abe5c87b71";
 
+
 const Page = () => {
   const supabase = useMemo(() => createClient(), []);
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<any[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
+  const [groupChats, setGroupChats] = useState<any[]>([])
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  
 
   // fetch current user
   useEffect(() => {
@@ -22,6 +25,42 @@ const Page = () => {
     fetchUser();
   }, []);
 
+  //fetch user groupchats
+  useEffect(() => {
+    if (!userId) return;
+    const fetchGroupChats = async () => {
+      const {data, error} = await supabase
+      .from ("group_chat_members")
+      .select(`group_chats (
+        id,
+        events (
+          id,
+          title
+        )
+      )
+    `)
+      .eq("user_id",userId);
+      
+    if (error) {
+      console.log("Error fetching group chats: ", error.message);
+      return;
+    }
+    
+    const chats = (data as unknown as any[]).map((item) => {
+      const event = item.group_chats.events;
+      const eventTitle = event?.title?? "Unamed Event";
+      return {
+        chat_id:item.group_chats.id,
+        event_title: eventTitle,
+      };
+    });
+
+    console.log("raw data:", JSON.stringify(data, null, 2));
+    setGroupChats(chats);
+    }
+    fetchGroupChats();
+  }, [userId])
+ 
 
   // fetch existing messages
   useEffect(() => {
@@ -111,24 +150,19 @@ const Page = () => {
       <div className="Chat p-0 gap-4 flex flex-row flex-1 overflow-hidden">
         {/* sidebar groups */}
         <ul className="list bg-base-100 rounded-box shadow-md p-5 w-1/4 overflow-y-auto">
-          <li className="list-row hover:bg-base-200">
-            <div>
-              <img className="size-10 rounded-box" src="https://img.daisyui.com/images/profile/demo/1@94.webp" />
-            </div>
-            <p className="text-xl">Group 1</p>
-          </li>
-          <li className="list-row hover:bg-base-200">
-            <div>
-              <img className="size-10 rounded-box" src="https://img.daisyui.com/images/profile/demo/4@94.webp" />
-            </div>
-            <p className="text-xl">Group 2</p>
-          </li>
-          <li className="list-row hover:bg-base-200">
-            <div>
-              <img className="size-10 rounded-box" src="https://img.daisyui.com/images/profile/demo/3@94.webp" />
-            </div>
-            <p className="text-xl">Group 3</p>
-          </li>
+          {groupChats.length > 0? (
+            groupChats.map((chat => (
+              <li key = {chat.chat_id} className="flex items-center gap-3 py-6 text-white">
+                 <div className="w-10 h-10 flex items-center justify-center bg-white text-black rounded-full font-bold">
+                  "insert img"
+                  </div>
+                <div className="size-10 width-full break-words w-[150px]">
+                  {chat.event_title}
+                </div>
+              </li>
+            )))
+
+          ):(<div className="text-white text-xl">No chats yet... <br></br>Join an event!</div>)}
         </ul>
 
         {/* chat room */}
@@ -150,7 +184,7 @@ const Page = () => {
           </div>
 
           {/* input bar */}
-          <div className="flex p-2 gap-4 items-end w-full">
+          <div className="flex p-2 gap-4 items-end w-full text-white">
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
