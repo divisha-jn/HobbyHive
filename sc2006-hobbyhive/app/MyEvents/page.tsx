@@ -233,29 +233,55 @@ export default function MyEvents() {
           )}
         </div>
       </div>
-
-      {/* ✅ Modal for Attendee List */}
+ 
+      {/* Attendee List Modal */}
       {showAttendeeModal && selectedEvent && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-lg p-6 w-[400px]">
-            <h2 className="text-xl font-semibold mb-4">
-              Attendees for {selectedEvent.title}
-            </h2>
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[80vh] overflow-hidden">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-teal-400 to-cyan-500 p-4 text-white">
+              <div className="flex justify-between items-center">
+                <h2 className="text-xl font-bold">Attendee List</h2>
+                <button
+                  onClick={() => setShowAttendeeModal(false)}
+                  className="text-white hover:text-gray-200 text-2xl font-bold transition-colors"
+                >
+                  ×
+                </button>
+              </div>
+              <p className="text-teal-100 text-sm mt-1">
+                {selectedEvent.title}
+              </p>
+            </div>
 
-            <ul className="list-disc pl-6 text-gray-700">
-              {(selectedEvent.attendeeNames || defaultAttendees).map(
-                (name, i) => (
-                  <li key={i}>{name}</li>
-                )
-              )}
-            </ul>
+            {/* Modal Body */}
+            <div className="p-4 max-h-96 overflow-y-auto">
+              <div className="space-y-3">
+                {(selectedEvent.attendeeNames || defaultAttendees).map((name, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded-lg transition-colors"
+                  >
+                    <span className="font-medium text-gray-800">
+                      {name}
+                    </span>
+                    {name === "Me" && (
+                      <span className="ml-auto bg-teal-100 text-teal-800 text-xs px-2 py-1 rounded-full font-medium">
+                        Host
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
 
-            <button
-              onClick={() => setShowAttendeeModal(false)}
-              className="mt-6 bg-teal-500 text-white px-4 py-2 rounded hover:bg-teal-600 transition"
-            >
-              Close
-            </button>
+            {/* Modal Footer */}
+            <div className="bg-gray-50 px-4 py-3 border-t border-gray-200">
+              <div className="flex justify-between text-sm text-gray-600">
+                <span>Total attendees: {(selectedEvent.attendeeNames || defaultAttendees).length}</span>
+                <span>Capacity: 8</span>
+              </div>
+            </div>
           </div>
         </div>
       )}
