@@ -56,6 +56,16 @@ const ReviewEvents: React.FC = () => {
 
     console.log("[handleApproveEvent] Approving event:", eventId);
     try {
+      const { data: eventData, error: fetchError } = await supabase
+      .from("events")
+      .select("host_id")
+      .eq("id", eventId)
+      .single();
+
+      if (fetchError || !eventData) throw fetchError;
+
+      const hostId = eventData.host_id;
+
       const { error } = await supabase
         .from("events")
         .update({ status: "approved" })
@@ -63,7 +73,15 @@ const ReviewEvents: React.FC = () => {
 
       if (error) throw error;
 
+      const { error: participantError } = await supabase
+      .from("event_participants")
+      .insert([{ event_id: eventId, user_id: hostId }]);
+      
+      if (participantError) throw participantError;
+
       alert("✅ Event approved successfully");
+
+
       fetchPendingEvents();
     } catch (error) {
       console.error("[handleApproveEvent] Error:", error);

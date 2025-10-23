@@ -2,16 +2,20 @@
 import React, { useState, useEffect } from "react";
 import Header from "../components/header";
 import Navbar from "../components/Navbar";
+import { createClient } from "@/utils/supabase/client";
 import Link from "next/link";
 
 interface Event {
-  id: number;
+  id: string;
   title: string;
   date: string;
   time: string;
-  image: string;
-  attendees: string;
-  attendeeNames?: string[]; // new field for attendee names
+  location: string;
+  image?: string;
+  host?: string;
+  status?: string;
+  attendees?: string;
+  attendeeNames?: string[];
 }
 
 export default function MyEvents() {
@@ -19,25 +23,85 @@ export default function MyEvents() {
   const [showAttendeeModal, setShowAttendeeModal] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [hostedEvents, setHostedEvents] = useState<Event[]>([]);
-
-  const attendingEvents = [
-    {
-      title: "Badminton @ Bukit Panjang CC",
-      date: "26 August 2026",
-      time: "20:00",
-      host: "Alan Wong",
-      image:
-        "https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?w=800&h=600&fit=crop",
-    },
-  ];
-
-  useEffect(() => {
-    const stored = JSON.parse(localStorage.getItem("hostedEvents") || "[]");
-    setHostedEvents(stored);
-  }, []);
-
-  // Sample attendees for demo — ideally this would come from Supabase later
+  const [attendingEvents, setAttendingEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
+  const supabase = createClient();
   const defaultAttendees = ["You"];
+
+    useEffect(() => {
+      fetchMyEvents();
+    }, []);
+  
+  const fetchMyEvents = async () => {
+    setLoading(true);
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      console.error(userError);
+      setLoading(false);
+      return;
+    }
+    const userId = user.id;
+
+    const fallbackImage =
+    "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&h=600&fit=crop";
+
+    try {
+      const { data: hostedData, error: hostedError } = await supabase
+        .from("events")
+        .select("*")
+        .eq("host_id", userId)
+        .in("status", ["pending", "approved", "rejected"])
+        .order("date", { ascending: true });
+
+      if (hostedError) throw hostedError;
+      
+      const hosted = hostedData?.map((e: any) => ({
+        ...e,
+        image: e.image_url || fallbackImage,
+      })) || [];
+      setHostedEvents(hosted || []);
+
+      const { data: participantData, error: participantError } = await supabase
+        .from("event_participants")
+        .select(`
+          event_id,
+          events (
+            id,
+            title,
+            date,
+            time,
+            location,
+            image_url,
+            host_id,
+            status
+          )
+        `)
+        .eq("user_id", userId);
+
+      if (participantError) throw participantError;
+
+      const attending = participantData?.map((p: any) => ({
+        id: p.event_id,
+        title: p.events.title,
+        date: p.events.date,
+        time: p.events.time,
+        location: p.events.location,
+        image: p.events.image_url || fallbackImage,
+        host: p.events.host_id,
+        status: p.events.status,
+      })) || [];
+
+      setAttendingEvents(attending);
+    } catch (err) {
+      console.error("Failed to fetch events", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-r from-teal-400 to-cyan-500 relative">

@@ -1,19 +1,21 @@
 "use client";
 
 import React, { useState } from "react";
+import { createClient } from "@/utils/supabase/client";
 import Header from "../../components/header";
 import Navbar from "../../components/Navbar";
 
 export default function CreateEvent() {
+  const supabase = createClient();
   const [title, setTitle] = useState("");
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [location, setLocation] = useState("");
   const [description, setDescription] = useState("");
-  const [maxParticipants, setMaxParticipants] = useState("");
+  const [capacity, setCapacity] = useState("");
   const [category, setCategory] = useState("");
   const [skillLevel, setSkillLevel] = useState("");
-  const [image, setImage] = useState("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -41,51 +43,97 @@ export default function CreateEvent() {
   ];
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setMessage("");
+  e.preventDefault(); // ✅ move this up immediately
 
-    const newErrors: { [key: string]: boolean } = {};
-    if (!title) newErrors.title = true;
-    if (!category) newErrors.category = true;
-    if (!skillLevel) newErrors.skillLevel = true;
-    if (!date) newErrors.date = true;
-    if (!time) newErrors.time = true;
-    if (!location) newErrors.location = true;
-    if (!maxParticipants) newErrors.maxParticipants = true;
+  setIsLoading(true);
+  setMessage("");
 
-    setErrors(newErrors);
-    if (Object.keys(newErrors).length > 0) {
-      setMessage("Please fill in all required fields marked with *");
-      setIsLoading(false);
-      return;
-    }
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    setMessage("Please log in before creating an event.");
+    setIsLoading(false);
+    return;
+  }
+
+  // Validate required fields
+  const newErrors: { [key: string]: boolean } = {};
+  if (!title) newErrors.title = true;
+  if (!category) newErrors.category = true;
+  if (!skillLevel) newErrors.skillLevel = true;
+  if (!date) newErrors.date = true;
+  if (!time) newErrors.time = true;
+  if (!location) newErrors.location = true;
+  if (!capacity) newErrors.capacity = true;
+
+  setErrors(newErrors);
+  if (Object.keys(newErrors).length > 0) {
+    setMessage("Please fill in all required fields marked with *");
+    setIsLoading(false);
+    return;
+  }
 
     try {
-      const newEvent = {
-        id: Date.now(),
-        title,
-        date,
-        time,
-        location,
-        description,
-        maxParticipants: parseInt(maxParticipants),
-        image: image || "https://images.unsplash.com/photo-1507525428034-b723cf961d3e",
-        category,
-        skillLevel,
-        attendees: "1/" + maxParticipants,
-      };
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError || !userData.user) {
+        setMessage("Please log in before creating an event.");
+        setIsLoading(false);
+        return;
+      }
+      const userId = userData.user.id;
 
-      // Save to localStorage
-      const storedEvents = JSON.parse(localStorage.getItem("hostedEvents") || "[]");
-      storedEvents.push(newEvent);
-      localStorage.setItem("hostedEvents", JSON.stringify(storedEvents));
+      let imageUrl = "https://images.unsplash.com/photo-1507525428034-b723cf961d3e"; 
+      if (imageFile) {
+        const fileExt = imageFile.name.split(".").pop();
+        const uniqueName = `${title.replace(/\s+/g, "_")}_${Date.now()}.${fileExt}`;
+        const filePath = `${userId}/${uniqueName}`;
 
-      setSuccess(true);
-      setMessage("Event created successfully!");
-    } catch (error) {
-      console.error("Error:", error);
-      setMessage("Error creating event. Please try again.");
+        const { error: uploadError } = await supabase.storage
+          .from("event-photo")
+          .upload(filePath, imageFile);
+
+        if (uploadError) {
+          console.error("Upload error:", uploadError.message);
+          setMessage("Error uploading image: " + uploadError.message);
+          setIsLoading(false);
+          return;
+        }
+
+        // ✅ Get public URL
+        const { data: publicUrlData } = supabase.storage
+          .from("event-photo")
+          .getPublicUrl(filePath);
+        imageUrl = publicUrlData.publicUrl;
+      }
+
+      const { error } = await supabase.from("events").insert([
+        {
+          title,
+          date,
+          time,
+          location,
+          description,
+          capacity: parseInt(capacity),
+          image_url: imageUrl,
+          category,
+          skill_level: skillLevel,
+          host_id: userId,
+        },
+      ]);
+
+      if (error) {
+        console.error("Insert error:", error.message);
+        setMessage("Error creating event: " + error.message);
+      } else {
+        setSuccess(true);
+        setMessage("Event created successfully!");
+      }
+    } catch (err) {
+      console.error("Unexpected error:", err);
+      setMessage("Unexpected error. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -130,12 +178,12 @@ export default function CreateEvent() {
                   setTime("");
                   setLocation("");
                   setDescription("");
-                  setMaxParticipants("");
-                  setImage("");
+                  setCapacity("");
                   setCategory("");
                   setSkillLevel("");
                   setErrors({});
                   setMessage("");
+                  setImageFile(null);
                 }}
                 className="inline-block bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-600 transition"
               >
@@ -148,7 +196,7 @@ export default function CreateEvent() {
                 Create New Event
               </h2>
 
-              {message && !message.includes("success") && (
+              {message && (
                 <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
                   <p className="font-semibold">⚠ {message}</p>
                 </div>
@@ -156,9 +204,7 @@ export default function CreateEvent() {
 
               <form onSubmit={handleSubmit} className="space-y-6 text-left">
                 <div>
-                  <label className="block mb-2 font-semibold">
-                    Event Title *
-                  </label>
+                  <label className="block mb-2 font-semibold">Event Title *</label>
                   <input
                     type="text"
                     value={title}
@@ -170,9 +216,7 @@ export default function CreateEvent() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block mb-2 font-semibold">
-                      Event Category *
-                    </label>
+                    <label className="block mb-2 font-semibold">Event Category *</label>
                     <select
                       value={category}
                       onChange={(e) => setCategory(e.target.value)}
@@ -187,9 +231,7 @@ export default function CreateEvent() {
                     </select>
                   </div>
                   <div>
-                    <label className="block mb-2 font-semibold">
-                      Skill Level *
-                    </label>
+                    <label className="block mb-2 font-semibold">Skill Level *</label>
                     <select
                       value={skillLevel}
                       onChange={(e) => setSkillLevel(e.target.value)}
@@ -255,23 +297,23 @@ export default function CreateEvent() {
                     </label>
                     <input
                       type="number"
-                      value={maxParticipants}
-                      onChange={(e) => setMaxParticipants(e.target.value)}
-                      className={getInputClassName("maxParticipants")}
+                      value={capacity}
+                      onChange={(e) => setCapacity(e.target.value)}
+                      className={getInputClassName("capacity")}
                       min={1}
                       placeholder="e.g. 10"
                     />
                   </div>
+
                   <div>
                     <label className="block mb-2 font-semibold">
-                      Image URL (optional)
+                      Upload Image (optional)
                     </label>
                     <input
-                      type="url"
-                      value={image}
-                      onChange={(e) => setImage(e.target.value)}
-                      className="w-full border border-gray-300 p-3 rounded focus:outline-none focus:ring-2 focus:ring-teal-500"
-                      placeholder="https://example.com/image.jpg"
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+                      className="w-full border border-gray-300 p-2 rounded focus:outline-none focus:ring-2 focus:ring-teal-500"
                     />
                   </div>
                 </div>
