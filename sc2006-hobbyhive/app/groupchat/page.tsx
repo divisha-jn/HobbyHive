@@ -3,9 +3,6 @@ import React, { useEffect, useState, useRef , useMemo} from "react";
 import { createClient } from "../../utils/supabase/client";
 import Navbar from "../components/Navbar";
 
-const MOCK_EVENT_ID = "f81d4fae-7dec-11d0-a765-00a0c91e6bf6";
-const MOCK_CHAT_ID = "a8e019cc-a8c7-4da8-9a22-45abe5c87b71";
-
 
 const Page = () => {
   const supabase = useMemo(() => createClient(), []);
@@ -14,6 +11,9 @@ const Page = () => {
   const [userId, setUserId] = useState<string | null>(null);
   const [groupChats, setGroupChats] = useState<any[]>([]);
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
+  const [groupMembers, setGroupMembers] = useState<any[]>([]);
+  const [showMembers, setShowMembers] = useState(false);
+  const [membersFetched, setMembersFetched] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   
   
@@ -63,6 +63,38 @@ const Page = () => {
     fetchGroupChats();
   }, [userId])
  
+  //fetch groupchatmembers
+  const fetchMembers = async () => {
+  
+    if(!selectedChatId) return;
+    const {data, error} = await supabase
+    .from("group_chat_members")
+    .select("profiles:user_id(username)")
+    .eq("chat_id",selectedChatId);
+
+    if (error) {
+      console.error("error fetching members", error.message);
+      return;
+    }
+
+    setGroupMembers(data || []);
+  };
+
+  //reset 
+  useEffect(() => {
+    setGroupMembers([]);
+    setMembersFetched(false);
+    setShowMembers(false);
+
+  }, [selectedChatId])
+
+  useEffect(() => {
+    
+    if(showMembers && selectedChatId && !membersFetched) {
+      fetchMembers();
+      setMembersFetched(true);
+    }
+},[showMembers,selectedChatId]);
 
   // fetch existing messages
   useEffect(() => {
@@ -174,6 +206,33 @@ const Page = () => {
 
         {/* chat room */}
         <div className="Chatroom border-1 border-base-400 p-2 flex flex-col flex-1 rounded-2xl h-full">
+          <div className="flex justify-end mb-2">
+            <div className="flex flex-col items-end mb-2 text-white">
+              <button
+                onClick={() => setShowMembers(!showMembers)}
+                className="btn btn-sm btn-outline btn-accent"
+              >
+                👥 {showMembers ? "Hide Members" : "View Members"}
+              </button>
+
+              {/* when toggled, render member list */}
+              {showMembers && (
+                <div className="bg-base-200 rounded-lg p-3 mt-3 w-full transition-all duration-300">
+                  {groupMembers.length > 0 ? (
+                    groupMembers.map((m, i) => (
+                      <p key={i} className="text-white">
+                        {m.username || m.profiles?.username}
+                      </p>
+                    ))
+                  ) : (
+                    <p className="text-gray-400 italic text-sm">
+                      {membersFetched ? "No members found..." : "Loading members..."}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
           <div className="flex-1 p-2 space-y-4 rounded-lg overflow-y-auto">
             {messages.length > 0 ? (
               messages.map((msg, idx) => (
