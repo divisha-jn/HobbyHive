@@ -12,8 +12,10 @@ const Page = () => {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<any[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
-  const [groupChats, setGroupChats] = useState<any[]>([])
+  const [groupChats, setGroupChats] = useState<any[]>([]);
+  const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  
   
 
   // fetch current user
@@ -64,29 +66,33 @@ const Page = () => {
 
   // fetch existing messages
   useEffect(() => {
-  const fetchMsgs = async () => {
-    const { data, error } = await supabase
-      .from("messages")
-      .select("id, chat_id, sender_id, content, created_at, profiles:sender_id(username)")
-      .eq("chat_id", MOCK_CHAT_ID)
-      .order("created_at", { ascending: true });
+    if (!selectedChatId) return;
+    setMessages([]);
+    const fetchMsgs = async () => {
 
-      if (error) {
-        console.error("Fetch error:", error.message);
-      } else if (data) {
-        setMessages(data);  
-      }
+      const { data, error } = await supabase
+        .from("messages")
+        .select("id, chat_id, sender_id, content, created_at, profiles:sender_id(username)")
+        .eq("chat_id", selectedChatId)
+        .order("created_at", { ascending: true });
+
+        if (error) {
+          console.error("Fetch error:", error.message);
+        } else if (data) {
+          setMessages(data);  
+        }
   };
 
   fetchMsgs();
-}, []);
+}, [selectedChatId]);
 
   //real time updates
   useEffect(() => {
+    if (!selectedChatId) return;
     const channel = supabase
-    .channel("live_updates")
+    .channel(`chat_${selectedChatId}`)
     .on("postgres_changes",
-      {event:"INSERT", schema: "public", table: "messages", filter: `chat_id=eq.${MOCK_CHAT_ID}`},
+      {event:"INSERT", schema: "public", table: "messages", filter: `chat_id=eq.${selectedChatId}`},
       async (payload) => {
         const {data:profile} = await supabase
         .from("profiles")
@@ -103,7 +109,7 @@ const Page = () => {
       supabase.removeChannel(channel);
       
     };
-  }, [MOCK_CHAT_ID]);
+  }, [selectedChatId]);
 
 
   // auto-scroll when messages update
@@ -125,7 +131,7 @@ const Page = () => {
 
     const { error } = await supabase.from("messages").insert([
       {
-        chat_id: MOCK_CHAT_ID,
+        chat_id: selectedChatId,
         sender_id: USER_ID,
         content: input,
       },
@@ -152,7 +158,8 @@ const Page = () => {
         <ul className="list bg-base-100 rounded-box shadow-md p-5 w-1/4 overflow-y-auto">
           {groupChats.length > 0? (
             groupChats.map((chat => (
-              <li key = {chat.chat_id} className="flex items-center gap-3 py-6 text-white">
+              <li key = {chat.chat_id} className="flex items-center gap-3 py-6 text-white hover:bg-accent rounded-xl" 
+              onClick ={() => setSelectedChatId(chat.chat_id)}>
                  <div className="w-10 h-10 flex items-center justify-center bg-white text-black rounded-full font-bold">
                   "insert img"
                   </div>
