@@ -4,6 +4,8 @@ import Header from "../components/header";
 import Navbar from "../components/Navbar";
 import { createClient } from "@/utils/supabase/client";
 import Link from "next/link";
+import { getRecommendedEvents } from "@/utils/supabase/participantService";
+import RecommendedEvents from "../components/RecommendedEvents";
 
 interface Event {
   id: string;
@@ -24,12 +26,14 @@ export default function MyEvents() {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [hostedEvents, setHostedEvents] = useState<Event[]>([]);
   const [attendingEvents, setAttendingEvents] = useState<Event[]>([]);
+  const [recommendedEvents, setRecommendedEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
   const defaultAttendees = ["You"];
 
     useEffect(() => {
       fetchMyEvents();
+      fetchRecommended();
     }, []);
   
   const fetchMyEvents = async () => {
@@ -102,6 +106,21 @@ export default function MyEvents() {
       setLoading(false);
     }
   };
+      const fetchRecommended = async () => {
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser();
+
+      if (error || !user) return;
+
+      try {
+        const recEvents = await getRecommendedEvents(user.id);
+        setRecommendedEvents(recEvents || []);
+      } catch (err) {
+        console.error("Failed to fetch recommended events", err);
+      }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-r from-teal-400 to-cyan-500 relative">
@@ -136,6 +155,13 @@ export default function MyEvents() {
       </div>
 
       <div className="flex justify-center mt-6 flex-col items-center">
+        {activeTab === "attending" && recommendedEvents.length > 0 && (
+          <div className="bg-white shadow-md rounded-md p-4 w-[700px] mb-6">
+            <h2 className="text-xl font-bold mb-4">Recommended Events</h2>
+            <RecommendedEvents events={recommendedEvents} />
+          </div>
+        )}
+        
         {activeTab === "attending" ? (
           attendingEvents.map((event, index) => (
             <div
