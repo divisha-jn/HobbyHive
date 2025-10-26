@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import ParticipantEvents from './ParticipantEvents';
 import RecommendedEvents from './RecommendedEvents';
-import FollowedUsers from './FollowedUsers';
+import FollowedUsers from './FollowedUsers/FollowedUsers';
 import { getParticipantEvents, getRecommendedEvents } from '@/utils/supabase/participantService';
 
 export default function ParticipantPage() {
