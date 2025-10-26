@@ -5,7 +5,7 @@ import Navbar from "../components/Navbar";
 import { createClient } from "@/utils/supabase/client";
 import Link from "next/link";
 import { getRecommendedEvents } from "@/utils/supabase/participantService";
-import RecommendedEvents from "../components/RecommendedEvents";
+import RecommendedEvents from "../participant/RecommendedEvents";
 
 interface Event {
   id: string;
