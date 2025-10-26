@@ -61,6 +61,7 @@ const ProfilePage: React.FC = () => {
 
   const handleFindEvents = () => router.push("/MyEvents");
   const handleCreateEvent = () => router.push("/host/CreateEvent");
+  const handleParticipantDashboard = () => router.push("/participant");
   
 
   const handleFollowingClick = (user: FollowingUser) => {
@@ -256,6 +257,13 @@ const ProfilePage: React.FC = () => {
                     style={{ backgroundColor: "#1DDACA" }}
                   >
                     Create Event
+                  </button>
+                  <button
+                    onClick={handleParticipantDashboard}
+                    className="text-white px-4 py-1 rounded-lg shadow-md hover:opacity-80 transition-colors"
+                    style={{ backgroundColor: "#1DDACA" }}
+                  >
+                    Participant Dashboard
                   </button>
                 </div>
 
