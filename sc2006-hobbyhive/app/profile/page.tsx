@@ -11,6 +11,7 @@ import {
   updatePassword,
   uploadProfilePicture,
 } from "@/utils/supabase/account";
+import FollowedUsers from "../participant/FollowedUsers/FollowedUsers";
 
 interface FollowingUser {
   id: number;
@@ -332,36 +333,9 @@ const ProfilePage: React.FC = () => {
           {/* Right Column - Following and Group Chats */}
           <div className="space-y-6">
             {/* Following Section */}
-            <div className="bg-white rounded-lg shadow-md p-4">
-              <h2 className="text-xl font-bold mb-4">Following</h2>
               <div className="space-y-2">
-                {following.map((user) => (
-                  <div
-                    key={user.id}
-                    onClick={() => handleFollowingClick(user)}
-                    className="flex items-center justify-between p-3 hover:bg-gray-100 rounded-lg cursor-pointer transition"
-                  >
-                    <div className="flex items-center gap-3">
-                      <img
-                        src={user.avatar}
-                        alt={user.name}
-                        className="w-10 h-10 rounded-full"
-                      />
-                      <span className="font-medium">{user.name}</span>
-                    </div>
-                    <button className="text-gray-500 hover:text-gray-700">
-                      <svg
-                        className="w-5 h-5"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
-                        <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z" />
-                      </svg>
-                    </button>
-                  </div>
-                ))}
+                <FollowedUsers />
               </div>
-            </div>
 
             {/* Group Chats Section */}
             <div className="bg-white rounded-lg shadow-md p-4">

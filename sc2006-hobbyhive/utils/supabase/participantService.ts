@@ -25,10 +25,15 @@ export async function getRecommendedEvents() {
 export async function getFollowedUsers() {
   const { data, error } = await supabase
     .from('follows')
-    .select('followed_user_id, users(username)')
+    .select('followed_user_id, users(username, avatar)')
     .eq('follower_id', (await supabase.auth.getUser()).data.user?.id);
   if (error) console.error('Error getting followed users:', error);
-  return data || [];
+  
+  // Flatten the data so users is an object, not an array
+  return (data || []).map(follow => ({
+    followed_user_id: follow.followed_user_id,
+    users: Array.isArray(follow.users) ? follow.users[0] : follow.users
+  }));
 }
 
 // Join event
