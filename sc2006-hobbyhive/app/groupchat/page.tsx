@@ -69,14 +69,15 @@ const Page = () => {
     if(!selectedChatId) return;
     const {data, error} = await supabase
     .from("group_chat_members")
-    .select("profiles:user_id(username)")
+    .select("user_id, profiles:user_id(username)")
     .eq("chat_id",selectedChatId);
 
     if (error) {
       console.error("error fetching members", error.message);
       return;
     }
-
+    console.log("fetched members:", JSON.stringify(data, null, 2));
+    console.log("current user:", userId);
     setGroupMembers(data || []);
   };
 
@@ -172,6 +173,28 @@ const Page = () => {
     if (error) console.error("Insert error:", error.message, error.details, error.hint);
 
   };
+  
+  const handleLeave = async () => {
+    if (!selectedChatId || !userId) return;
+    
+    const { error } = await supabase
+    .from("group_chat_members")
+    .delete()
+    .eq("chat_id",selectedChatId)
+    .eq("user_id", userId);
+
+    if (error) {
+      console.error("error leaving group: ", error.message);
+    } else {
+      setGroupMembers((prev) => prev.filter((m) => m.id !== userId)); // remove from current members
+
+      setGroupChats((prev) => prev.filter((c) => c.chat_id !== selectedChatId)); //remove group from sidebar
+
+      setSelectedChatId(null); //clear selected
+    } 
+  };
+    
+  
 
   return (
     <div className="h-screen flex flex-col p-2">
@@ -215,14 +238,22 @@ const Page = () => {
                 👥 {showMembers ? "Hide Members" : "View Members"}
               </button>
 
-              {/* when toggled, render member list */}
+              {/* show member list */}
               {showMembers && (
-                <div className="bg-base-200 rounded-lg p-3 mt-3 w-full transition-all duration-300">
+                <div className="bg-base-200 rounded-lg p-3 mt-3 w-full transition-shadow duration-300">
                   {groupMembers.length > 0 ? (
                     groupMembers.map((m, i) => (
-                      <p key={i} className="text-white">
-                        {m.username || m.profiles?.username}
-                      </p>
+                      <div key={i} className="flex">
+                        <span>{m.profiles?.username}</span>
+                      
+                        {m.user_id === userId && (
+                          <button onClick={() => handleLeave()}
+                          className="btn btn-xs btn-error">
+                            leave
+                          </button>
+                        )}
+                        
+                      </div>
                     ))
                   ) : (
                     <p className="text-gray-400 italic text-sm">
