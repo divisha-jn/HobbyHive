@@ -14,6 +14,7 @@ const Page = () => {
   const [groupMembers, setGroupMembers] = useState<any[]>([]);
   const [showMembers, setShowMembers] = useState(false);
   const [membersFetched, setMembersFetched] = useState(false);
+  const [hostId, setHostId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   
   
@@ -119,6 +120,33 @@ const Page = () => {
   fetchMsgs();
 }, [selectedChatId]);
 
+  //fetch host id
+  useEffect(() => {
+    setHostId(null);
+    if (!selectedChatId) return;
+
+    const fetchHost = async () => {
+      const { data, error } = await supabase
+      .from("group_chats")
+      .select(`id,
+        events(host_id)`)
+        .eq("id",selectedChatId)
+        .single();
+
+        if (error) {
+          console.log("error fetching host: ",error.message);
+          return;
+        }
+
+        setHostId((data as any)?.events?.host_id ?? null);
+      
+    };
+
+    fetchHost();
+
+  }, [selectedChatId])
+
+
   //real time updates
   useEffect(() => {
     if (!selectedChatId) return;
@@ -193,6 +221,23 @@ const Page = () => {
       setSelectedChatId(null); //clear selected
     } 
   };
+  
+  const handleRemove = async (memberId: string) => {
+    if (!selectedChatId) return;
+
+    const { error } = await supabase
+    .from("group_chat_members")
+    .delete()
+    .eq("chat_id", selectedChatId)
+    .eq("user_id", memberId);
+
+    if (error) {
+      console.error("error removing member: ", error.message);
+    } else {
+      setGroupMembers((prev) => prev.filter((m) => m.user_id !== memberId));
+    }
+
+  }
     
   
 
@@ -233,7 +278,7 @@ const Page = () => {
             <div className="flex flex-col items-end mb-2 text-white">
               <button
                 onClick={() => setShowMembers(!showMembers)}
-                className="btn btn-sm btn-outline btn-accent"
+                className="btn btn-sm btn-outline btn-accent bg-accent text-black"
               >
                 👥 {showMembers ? "Hide Members" : "View Members"}
               </button>
@@ -243,14 +288,22 @@ const Page = () => {
                 <div className="bg-base-200 rounded-lg p-3 mt-3 w-full transition-shadow duration-300">
                   {groupMembers.length > 0 ? (
                     groupMembers.map((m, i) => (
-                      <div key={i} className="flex">
-                        <span>{m.profiles?.username}</span>
+                      <div key={i} className="flex items-center justify-between bg-base-300 rounded-lg p-2 mb-2">
+                        <span className="px-5">{m.profiles?.username}</span>
                       
-                        {m.user_id === userId && (
+                        {m.user_id === userId && userId !== hostId && (
                           <button onClick={() => handleLeave()}
                           className="btn btn-xs btn-error">
                             leave
                           </button>
+                        )}
+
+                        {hostId === userId && m.user_id !== hostId && (
+                          <button
+                             onClick={ () => handleRemove(m.user_id)}
+                             className="btn btn-xs btn-error">
+                              remove
+                             </button>
                         )}
                         
                       </div>
