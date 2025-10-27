@@ -12,7 +12,7 @@ export async function getParticipantEvents() {
 }
 
 // Get recommended events (based on popularity or category)
-export async function getRecommendedEvents() {
+export async function getRecommendedEvents(id?: string) {
   const { data, error } = await supabase
     .from('events')
     .select('*')

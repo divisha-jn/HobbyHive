@@ -1,17 +1,25 @@
 
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/utils/supabase/client";
 import Header from "../components/header";
 import Navbar from "../components/Navbar";
+
 import Filterbutton from "../components/filterbutton"; 
 
-interface HobbyCardProps {
+interface Event {
+  id: string;
+  title: string;
+  image_url: string;
+}
+interface EventCardProps {
   image: string;
   title: string;
   onClick: () => void; 
 }
 
-const HobbyCard: React.FC<HobbyCardProps> = ({ image, title, onClick }) => (
+const EventCard: React.FC<EventCardProps> = ({ image, title, onClick }) => (
   <div
     onClick={onClick}
     className="relative rounded-2xl overflow-hidden cursor-pointer transition-transform hover:scale-105 hover:shadow-xl"
@@ -28,67 +36,41 @@ const HobbyCard: React.FC<HobbyCardProps> = ({ image, title, onClick }) => (
   </div>
 );
 
-interface Hobby {
-  id: number;
-  title: string;
-  image: string;
-}
 
 const EventsPage: React.FC = () => {
+  const router = useRouter();
+  const supabase = createClient();
   const [searchQuery, setSearchQuery] = useState("");
+  const [events, setEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const hobbies: Hobby[] = [
-    {
-      id: 1,
-      title: "Badminton@AMK..",
-      image: "https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?w=800&h=600&fit=crop",
-    },
-    {
-      id: 2,
-      title: "Basketball@OCBC Arena",
-      image: "https://images.unsplash.com/photo-1546519638-68e109498ffc?w=800&h=600&fit=crop",
-    },
-    {
-      id: 3,
-      title: "Arts&Craft@Punggol Community Club",
-      image: "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=800&h=600&fit=crop",
-    },
-    {
-      id: 4,
-      title: "Table Tennis@Yishun Safra",
-      image: "https://images.unsplash.com/photo-1609710228159-0fa9bd7c0827?w=800&h=600&fit=crop",
-    },
-    {
-      id: 5,
-      title: "MTG@..",
-      image: "https://images.unsplash.com/photo-1612404730960-5c71577fca11?w=800&h=600&fit=crop",
-    },
-    {
-      id: 6,
-      title: "Karaoke@Westgate",
-      image: "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=800&h=600&fit=crop",
-    },
-    {
-      id: 7,
-      title: "Swimming@Sentosa Beach",
-      image: "https://images.unsplash.com/photo-1530549387789-4c1017266635?w=800&h=600&fit=crop",
-    },
-    {
-      id: 8,
-      title: "Tennis@Yio Chu Kang Tennis Centre",
-      image: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800&h=600&fit=crop",
-    },
-    {
-      id: 9,
-      title: "Hiking@Bukit Timah Hill",
-      image: "https://images.unsplash.com/photo-1551632811-561732d1e306?w=800&h=600&fit=crop",
-    },
-  ];
+    // Fetch events from Supabase
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("events")
+          .select("id, title, image_url")
+          .order("created_at", { ascending: false });
 
-  const handleCardClick = (hobby: Hobby) => {
-    console.log("Clicked hobby:", hobby.title);
-    // Add your navigation logic here
-    // router.push(`/hobbies/${hobby.id}`);
+        if (error) {
+          console.error("Error fetching events:", error);
+        } else {
+          setEvents(data || []);
+        }
+      } catch (err) {
+        console.error("Unexpected error:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEvents();
+  }, [supabase]);
+
+  const handleCardClick = (Event: Event) => {
+    console.log("Clicked Event:", Event.title);
+    router.push(`/events/${Event.id}`);
   };
 
   const handleSearch = () => {
@@ -149,18 +131,22 @@ const EventsPage: React.FC = () => {
         </div>
       
 
-      {/* Hobby Cards Grid */}
+      {/* Event Cards Grid */}
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {hobbies.map((hobby) => (
-            <HobbyCard
-              key={hobby.id}
-              image={hobby.image}
-              title={hobby.title}
-              onClick={() => handleCardClick(hobby)}
+        {events.length === 0 ? (
+          <p className="text-center text-white text-lg">No events found</p>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {events.map((Event) => (
+            <EventCard
+              key={Event.id}
+              image={Event.image_url}
+              title={Event.title}
+              onClick={() => handleCardClick(Event)}
             />
           ))}
         </div>
+        )}
       </div>
     </div>
   );
