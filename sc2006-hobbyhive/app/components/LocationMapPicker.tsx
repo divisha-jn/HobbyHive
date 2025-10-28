@@ -177,10 +177,10 @@ export default function LocationMapPicker({
           scrollWheelZoom={true}
         >
           <TileLayer
-            attribution='© <a href="https://www.onemap.gov.sg/" target="_blank">OneMap</a> | Map data © contributors, <a href="http://SLA.gov.sg">Singapore Land Authority</a>'
-            url="https://www.onemap.gov.sg/maps/tiles/Default/{z}/{x}/{y}.png"
-            maxZoom={19}
-            minZoom={11}
+                attribution='<img src="https://www.onemap.gov.sg/web-assets/images/logo/om_logo.png" style="height:20px;width:20px;"/> <a href="https://www.onemap.gov.sg/" target="_blank" rel="noopener noreferrer">OneMap</a> © contributors | <a href="https://www.sla.gov.sg/" target="_blank" rel="noopener noreferrer">Singapore Land Authority</a>'
+                url="https://www.onemap.gov.sg/maps/tiles/Default/{z}/{x}/{y}.png"
+                maxZoom={19}
+                minZoom={11}
           />
 
           {userLocation && <MapController userLocation={userLocation} />}
