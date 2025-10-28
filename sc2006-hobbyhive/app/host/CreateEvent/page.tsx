@@ -4,6 +4,12 @@ import React, { useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 import Header from "../../components/header";
 import Navbar from "../../components/Navbar";
+import dynamic from "next/dynamic";
+
+const LocationMapPicker = dynamic(
+  () => import("../../components/LocationMapPicker"),
+  { ssr: false }
+);
 
 export default function CreateEvent() {
   const supabase = createClient();
@@ -20,6 +26,8 @@ export default function CreateEvent() {
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: boolean }>({});
+  
+  const [useMapPicker, setUseMapPicker] = useState(false);
 
   const categories = [
     "Sports & Fitness",
@@ -42,39 +50,43 @@ export default function CreateEvent() {
     "All levels welcome",
   ];
 
+  const handleLocationSelect = (locationName: string) => {
+    setLocation(locationName);
+    setErrors((prev) => ({ ...prev, location: false }));
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-  e.preventDefault(); // ✅ move this up immediately
+    e.preventDefault();
 
-  setIsLoading(true);
-  setMessage("");
+    setIsLoading(true);
+    setMessage("");
 
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
 
-  if (!user) {
-    setMessage("Please log in before creating an event.");
-    setIsLoading(false);
-    return;
-  }
+    if (!user) {
+      setMessage("Please log in before creating an event.");
+      setIsLoading(false);
+      return;
+    }
 
-  // Validate required fields
-  const newErrors: { [key: string]: boolean } = {};
-  if (!title) newErrors.title = true;
-  if (!category) newErrors.category = true;
-  if (!skillLevel) newErrors.skillLevel = true;
-  if (!date) newErrors.date = true;
-  if (!time) newErrors.time = true;
-  if (!location) newErrors.location = true;
-  if (!capacity) newErrors.capacity = true;
+    const newErrors: { [key: string]: boolean } = {};
+    if (!title) newErrors.title = true;
+    if (!category) newErrors.category = true;
+    if (!skillLevel) newErrors.skillLevel = true;
+    if (!date) newErrors.date = true;
+    if (!time) newErrors.time = true;
+    if (!location) newErrors.location = true;
+    if (!capacity) newErrors.capacity = true;
 
-  setErrors(newErrors);
-  if (Object.keys(newErrors).length > 0) {
-    setMessage("Please fill in all required fields marked with *");
-    setIsLoading(false);
-    return;
-  }
+    setErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) {
+      setMessage("Please fill in all required fields marked with *");
+      setIsLoading(false);
+      return;
+    }
 
     try {
       const { data: userData, error: userError } = await supabase.auth.getUser();
@@ -85,7 +97,7 @@ export default function CreateEvent() {
       }
       const userId = userData.user.id;
 
-      let imageUrl = "https://images.unsplash.com/photo-1507525428034-b723cf961d3e"; 
+      let imageUrl = "https://images.unsplash.com/photo-1507525428034-b723cf961d3e";
       if (imageFile) {
         const fileExt = imageFile.name.split(".").pop();
         const uniqueName = `${title.replace(/\s+/g, "_")}_${Date.now()}.${fileExt}`;
@@ -102,7 +114,6 @@ export default function CreateEvent() {
           return;
         }
 
-        // ✅ Get public URL
         const { data: publicUrlData } = supabase.storage
           .from("event-photo")
           .getPublicUrl(filePath);
@@ -184,6 +195,7 @@ export default function CreateEvent() {
                   setErrors({});
                   setMessage("");
                   setImageFile(null);
+                  setUseMapPicker(false);
                 }}
                 className="inline-block bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-600 transition"
               >
@@ -269,14 +281,45 @@ export default function CreateEvent() {
                 </div>
 
                 <div>
-                  <label className="block mb-2 font-semibold">Location *</label>
-                  <input
-                    type="text"
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                    className={getInputClassName("location")}
-                    placeholder="e.g., Ang Mo Kio Community Club"
-                  />
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block font-semibold">Location *</label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setUseMapPicker(!useMapPicker);
+                        if (useMapPicker) {
+                          // Switching to manual, keep the location value
+                        }
+                      }}
+                      className="text-sm bg-teal-100 text-teal-700 px-3 py-1 rounded hover:bg-teal-200 transition"
+                    >
+                      {useMapPicker ? "📝 Switch to Manual Entry" : "🗺️ Use Map Picker"}
+                    </button>
+                  </div>
+
+                  {useMapPicker ? (
+                    <>
+                      <LocationMapPicker
+                        onLocationSelect={handleLocationSelect}
+                        selectedLocation={location}
+                      />
+                      {location && (
+                        <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded">
+                          <p className="text-sm text-green-800">
+                            <strong>Selected:</strong> {location}
+                          </p>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <input
+                      type="text"
+                      value={location}
+                      onChange={(e) => setLocation(e.target.value)}
+                      className={getInputClassName("location")}
+                      placeholder="e.g., Ang Mo Kio Community Club"
+                    />
+                  )}
                 </div>
 
                 <div>

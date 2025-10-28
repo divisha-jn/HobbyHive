@@ -1,6 +1,19 @@
 @import "tailwindcss"; 
 @plugin "daisyui";
-body{ padding:1%rem;
+@import "leaflet/dist/leaflet.css";
+
+body{ 
+    padding:1rem;
     color: #363636;
     background-color: lightgray;
- } 
+}
+
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+}
+
+.leaflet-marker-icon {
+  margin-left: -12px !important;
+  margin-top: -41px !important;
+}
