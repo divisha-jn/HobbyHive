@@ -1,3 +1,5 @@
+
+
 "use client";
 import React, { useState, useEffect } from 'react';
 import { MapPin, Calendar, Clock, Users, Heart, ChevronLeft, Tag, TrendingUp } from 'lucide-react';
@@ -20,6 +22,7 @@ interface EventData {
   description: string;
   capacity: number;
   host_id: string;
+  current_attendees: number;
 }
 
 export default function EventListing({ eventId }: EventListingProps) {
@@ -29,6 +32,9 @@ export default function EventListing({ eventId }: EventListingProps) {
   const [event, setEvent] = useState<EventData | null>(null);
   const [loading, setLoading] = useState(true);
   const [hostName, setHostName] = useState("Host");
+  const [isAttending, setIsAttending] = useState(false);
+  const [isJoining, setIsJoining] = useState(false);
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
     const fetchEvent = async () => {
@@ -55,6 +61,19 @@ export default function EventListing({ eventId }: EventListingProps) {
           if (userData) {
             setHostName(userData.full_name || "Host");
           }
+
+          // Check if user is already attending
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            const { data: participantData } = await supabase
+              .from("participants")
+              .select("*")
+              .eq("event_id", eventId)
+              .eq("user_id", user.id)
+              .single();
+
+            setIsAttending(!!participantData);
+          }
         }
       } catch (err) {
         console.error("Unexpected error:", err);
@@ -65,6 +84,61 @@ export default function EventListing({ eventId }: EventListingProps) {
 
     fetchEvent();
   }, [eventId, supabase]);
+
+  const handleJoinEvent = async () => {
+    if (!event) return;
+
+    setIsJoining(true);
+    setMessage("");
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setMessage("Please log in to join the event");
+        setIsJoining(false);
+        return;
+      }
+
+      // Check current participant count
+      const { count, error: countError } = await supabase
+        .from("participants")
+        .select("*", { count: "exact", head: true })
+        .eq("event_id", eventId);
+
+      if (countError) {
+        console.error("Error checking participants:", countError);
+        setMessage("Error joining event");
+        setIsJoining(false);
+        return;
+      }
+
+      if (count !== null && count >= event.capacity) {
+        setMessage("Event is Full");
+        setIsJoining(false);
+        return;
+      }
+
+      // Add user to event participants
+      const { error: joinError } = await supabase
+        .from("participants")
+        .insert([{ user_id: user.id, event_id: eventId }]);
+
+      if (joinError) {
+        console.error("Error joining event:", joinError);
+        setMessage(joinError.message || "Error joining event");
+      } else {
+        setIsAttending(true);
+        setMessage("Successfully joined!");
+        // Update current attendees count
+        setEvent(prev => prev ? { ...prev, current_attendees: (prev.current_attendees || 0) + 1 } : null);
+      }
+    } catch (err) {
+      console.error("Unexpected error:", err);
+      setMessage("Error joining event");
+    } finally {
+      setIsJoining(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -214,17 +288,51 @@ export default function EventListing({ eventId }: EventListingProps) {
           <span className="px-4 py-2 bg-cyan-100 text-cyan-700 text-sm font-medium rounded-full">{event.category}</span>
         </div>
 
-        {/* Status */}
-        <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-8 text-center">
-          <p className="text-green-700 font-semibold text-sm">✓ You are attending this event</p>
-        </div>
+        {/* Status Message */}
+        {message && (
+          <div className={`rounded-lg p-3 mb-8 text-center ${
+            message === "Event is Full" 
+              ? 'bg-red-50 border border-red-200' 
+              : message === "Successfully joined!"
+              ? 'bg-green-50 border border-green-200'
+              : 'bg-yellow-50 border border-yellow-200'
+          }`}>
+            <p className={`font-semibold text-sm ${
+              message === "Event is Full" 
+                ? 'text-red-700' 
+                : message === "Successfully joined!"
+                ? 'text-green-700'
+                : 'text-yellow-700'
+            }`}>
+              {message === "Event is Full" ? '✗ ' : message === "Successfully joined!" ? '✓ ' : '⚠ '}
+              {message}
+            </p>
+          </div>
+        )}
+
+        {/* Attendance Status */}
+        {isAttending && !message && (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-8 text-center">
+            <p className="text-green-700 font-semibold text-sm">✓ You are attending this event</p>
+          </div>
+        )}
       </div>
 
       {/* Bottom Action Buttons */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-cyan-100 p-4">
-        <button className="w-full py-3 bg-gradient-to-r from-cyan-400 to-cyan-500 text-white font-semibold rounded-lg hover:from-cyan-500 hover:to-cyan-600 transition shadow-lg">
-          Go to Chat
-        </button>
+        {isAttending ? (
+          <button className="w-full py-3 bg-gradient-to-r from-cyan-400 to-cyan-500 text-white font-semibold rounded-lg hover:from-cyan-500 hover:to-cyan-600 transition shadow-lg">
+            Go to Chat
+          </button>
+        ) : (
+          <button 
+            onClick={handleJoinEvent}
+            disabled={isJoining}
+            className="w-full py-3 bg-gradient-to-r from-cyan-400 to-cyan-500 text-white font-semibold rounded-lg hover:from-cyan-500 hover:to-cyan-600 transition shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isJoining ? 'Joining...' : 'Join'}
+          </button>
+        )}
       </div>
     </div>
   );
