@@ -2,7 +2,7 @@
 
 "use client";
 import React, { useState, useEffect } from 'react';
-import { MapPin, Calendar, Clock, Users, Heart, ChevronLeft, Tag, TrendingUp } from 'lucide-react';
+import { MapPin, Calendar, Clock, Users, Heart, ChevronLeft, TrendingUp } from 'lucide-react';
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 
@@ -233,13 +233,6 @@ export default function EventListing({ eventId }: EventListingProps) {
             <div>
               <p className="text-sm text-gray-500">Location</p>
               <p className="font-semibold">{event.location}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 text-gray-700">
-            <Tag className="w-5 h-5 text-cyan-500 flex-shrink-0" />
-            <div>
-              <p className="text-sm text-gray-500">Cost</p>
-              <p className="font-semibold">Free</p>
             </div>
           </div>
           <div className="flex items-center gap-3 text-gray-700">
