@@ -239,9 +239,7 @@ export default function LoginPage() {
           textAlign: "center",
         }}
       >
-        <Link href="/groupchat" style={{ color: "#1DDACA", textDecoration: "underline" }}>
-          click me for temporary route to gc
-        </Link>
+      
       </div>
     </div>
   );
