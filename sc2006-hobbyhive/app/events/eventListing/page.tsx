@@ -189,7 +189,9 @@ export default function EventListing({ eventId }: EventListingProps) {
         <button onClick={() => router.back()}>
           <ChevronLeft className="w-6 h-6 text-gray-600" />
         </button>
-        <span className="text-gray-600 font-medium">Event Details</span>
+        <span className="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-cyan-500 bg-clip-text text-transparent">
+          Event Details
+        </span>
         <div className="w-6"></div>
       </div>
 
@@ -339,7 +341,7 @@ export default function EventListing({ eventId }: EventListingProps) {
           <button 
             onClick={handleJoinEvent}
             disabled={isJoining}
-            className="w-full py-3 bg-gradient-to-r from-cyan-400 to-cyan-500 text-white font-semibold rounded-lg hover:from-cyan-500 hover:to-cyan-600 transition shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            className= "w-full py-3 bg-gradient-to-r from-cyan-400 via-cyan-450 to-teal-500 text-white font-semibold rounded-lg hover:from-cyan-500 hover:to-cyan-600 transition shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isJoining ? 'Joining...' : 'Join'}
           </button>
