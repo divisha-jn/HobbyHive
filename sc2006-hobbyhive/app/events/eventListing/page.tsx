@@ -35,6 +35,36 @@ export default function EventListing({ eventId }: EventListingProps) {
   const [isAttending, setIsAttending] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
   const [message, setMessage] = useState("");
+  const [attendees, setAttendees] = useState<any[]>([]);
+  const fetchAttendees = async () => {
+    try {
+      const { data: participantData, error } = await supabase
+        .from("event_participants")
+        .select(`
+          user_id,
+          profiles (
+            full_name,
+            profile_picture
+          )
+        `)
+        .eq("event_id", eventId);
+
+      if (error) {
+        console.error("Error fetching attendees:", error);
+        return;
+      }
+
+      const attendeeList = participantData?.map((p: any, index: number) => ({
+        id: index,
+        name: p.profiles?.full_name || "Unknown",
+        color: ['bg-blue-400', 'bg-purple-400', 'bg-pink-400', 'bg-green-400', 'bg-yellow-400'][index % 5],
+      })) || [];
+
+      setAttendees(attendeeList);
+    } catch (err) {
+      console.error("Error loading attendees:", err);
+    }
+  };
 
   useEffect(() => {
     const fetchEvent = async () => {
@@ -62,11 +92,13 @@ export default function EventListing({ eventId }: EventListingProps) {
             setHostName(userData.full_name || "Host");
           }
 
+          await fetchAttendees();
+
           // Check if user is already attending
           const { data: { user } } = await supabase.auth.getUser();
           if (user) {
             const { data: participantData } = await supabase
-              .from("participants")
+              .from("event_participants")
               .select("*")
               .eq("event_id", eventId)
               .eq("user_id", user.id)
@@ -101,16 +133,9 @@ export default function EventListing({ eventId }: EventListingProps) {
 
       // Check current participant count
       const { count, error: countError } = await supabase
-        .from("participants")
+        .from("event_participants")
         .select("*", { count: "exact", head: true })
         .eq("event_id", eventId);
-
-      if (countError) {
-        console.error("Error checking participants:", countError);
-        setMessage("Error joining event");
-        setIsJoining(false);
-        return;
-      }
 
       if (count !== null && count >= event.capacity) {
         setMessage("Event is Full");
@@ -120,7 +145,7 @@ export default function EventListing({ eventId }: EventListingProps) {
 
       // Add user to event participants
       const { error: joinError } = await supabase
-        .from("participants")
+        .from("event_participants")
         .insert([{ user_id: user.id, event_id: eventId }]);
 
       if (joinError) {
@@ -131,6 +156,7 @@ export default function EventListing({ eventId }: EventListingProps) {
         setMessage("Successfully joined!");
         // Update current attendees count
         setEvent(prev => prev ? { ...prev, current_attendees: (prev.current_attendees || 0) + 1 } : null);
+        await fetchAttendees();
       }
     } catch (err) {
       console.error("Unexpected error:", err);
@@ -155,14 +181,6 @@ export default function EventListing({ eventId }: EventListingProps) {
       </div>
     );
   }
-
-  const attendees = [
-    { id: 1, name: 'Alan', color: 'bg-blue-400' },
-    { id: 2, name: 'Sarah', color: 'bg-purple-400' },
-    { id: 3, name: 'Mike', color: 'bg-pink-400' },
-    { id: 4, name: 'Emma', color: 'bg-green-400' },
-    { id: 5, name: '+5 more', color: 'bg-gray-400' },
-  ];
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-cyan-50 to-white pb-24">
@@ -249,7 +267,7 @@ export default function EventListing({ eventId }: EventListingProps) {
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-semibold text-gray-800 flex items-center gap-2">
               <Users className="w-4 h-4 text-cyan-600" />
-              Attendees ({event.capacity})
+              Attendees ({attendees.length}/{event.capacity})
             </h3>
           </div>
           <div className="flex -space-x-2 flex-wrap gap-y-2">

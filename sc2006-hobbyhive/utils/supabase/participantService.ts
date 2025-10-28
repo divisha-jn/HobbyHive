@@ -5,7 +5,7 @@ const supabase = createClient();
 // Get all events that participant joined
 export async function getParticipantEvents() {
   const { data, error } = await supabase
-    .from('participants')
+    .from('event_participants')
     .select('events(*)'); // joins with events table
   if (error) console.error('Error loading events:', error);
   return data || [];
