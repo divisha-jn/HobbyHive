@@ -21,36 +21,28 @@ export default function EditCancelPage() {
     fetchHostedEvents();
   }, []);
 
-  return (
-    <div className="min-h-screen bg-gray-50 flex justify-center p-6">
-      <div className="bg-white p-8 rounded-xl shadow-lg w-full max-w-2xl">
-        <h1 className="text-3xl font-bold mb-4 text-center">
-          <span style={{ color: "#1DDACA" }}>Edit</span> / Cancel Events
-        </h1>
+  const fetchHostedEvents = async () => {
+    setLoading(true);
+    const { data: { user }, error } = await supabase.auth.getUser();
+    if (error || !user) {
+      console.error(error);
+      setLoading(false);
+      return;
+    }
 
-        {events.length === 0 ? (
-          <p className="text-center text-gray-500">No events found.</p>
-        ) : (
-          <ul className="space-y-4">
-            {events.map((event) => (
-              <li key={event.id} className="border p-4 rounded-md shadow-sm flex justify-between items-center">
-                <div>
-                  <h3 className="font-semibold text-lg">{event.title}</h3>
-                  <p className="text-sm text-gray-600">
-                    {event.date} — {event.location}
-                  </p>
-                </div>
-                <button
-                  onClick={() => handleCancel(event.id)}
-                  className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
-                >
-                  Cancel
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-    </div>
-  );
-}
+    try {
+      const { data: hostedData, error: hostedError } = await supabase
+        .from("events")
+        .select("*")
+        .eq("host_id", user.id)
+        .order("date", { ascending: true });
+
+      if (hostedError) throw hostedError;
+
+      setEvents(hostedData || []);
+    } catch (err) {
+      console.error("Failed to fetch events", err);
+    } finally {
+      setLoading(false);
+    }
+  };
