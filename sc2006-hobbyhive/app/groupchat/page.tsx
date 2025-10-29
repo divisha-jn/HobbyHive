@@ -28,17 +28,20 @@ const Page = () => {
     fetchUser();
   }, []);
 
-  //fetch user groupchats
+  //fetch user groupchats, title & img
   useEffect(() => {
+    
     if (!userId) return;
     const fetchGroupChats = async () => {
+
       const {data, error} = await supabase
       .from ("group_chat_members")
-      .select(`group_chats (
+      .select(`group_chats:chat_id (
         id,
-        events (
+        events:event_id (
           id,
-          title
+          title,
+          image_url
         )
       )
     `)
@@ -50,15 +53,14 @@ const Page = () => {
     }
     
     const chats = (data as unknown as any[]).map((item) => {
-      const event = item.group_chats.events;
-      const eventTitle = event?.title?? "Unamed Event";
+      const event = item.group_chats?.events;
       return {
         chat_id:item.group_chats.id,
-        event_title: eventTitle,
+        event_title: event?.title ?? "unnamed Event",
+        image_url:event?.image_url ?? "/placeholder.png",
       };
     });
 
-    console.log("raw data:", JSON.stringify(data, null, 2));
     setGroupChats(chats);
     }
     fetchGroupChats();
@@ -260,8 +262,12 @@ const Page = () => {
             groupChats.map((chat => (
               <li key = {chat.chat_id} className="flex items-center gap-3 py-6 text-white hover:bg-accent rounded-xl" 
               onClick ={() => setSelectedChatId(chat.chat_id)}>
-                 <div className="w-10 h-10 flex items-center justify-center bg-white text-black rounded-full font-bold">
-                  "insert img"
+                 <div className="w-10 h-10 flex items-center justify-center bg-white rounded-full font-bold">
+                    <img 
+                    src={chat.img_url}
+                    alt={chat.event_title}
+                    className="w-full h-full object-cover rounded-2xl"
+                    />
                   </div>
                 <div className="size-10 width-full break-words w-[150px]">
                   {chat.event_title}

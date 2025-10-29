@@ -6,6 +6,7 @@ import { createClient } from "@/utils/supabase/client";
 import Link from "next/link";
 import { getRecommendedEvents } from "@/utils/supabase/participantService";
 import RecommendedEvents from "../participant/RecommendedEvents";
+import { useRouter } from "next/navigation";
 
 interface Event {
   id: string;
@@ -33,11 +34,11 @@ export default function MyEvents() {
   const supabase = createClient();
   const defaultAttendees = ["You"];
 
-    useEffect(() => {
-      fetchMyEvents();
-      fetchRecommended();
-    }, []);
-  
+  useEffect(() => {
+    fetchMyEvents();
+    fetchRecommended();
+  }, []);
+
   const fetchMyEvents = async () => {
     setLoading(true);
     try {
@@ -65,10 +66,11 @@ export default function MyEvents() {
 
       if (hostedError) throw hostedError;
 
-      const hosted = hostedData?.map((e: any) => ({
-        ...e,
-        image: e.image_url || fallbackImage,
-      })) || [];
+      const hosted =
+        hostedData?.map((e: any) => ({
+          ...e,
+          image: e.image_url || fallbackImage,
+        })) || [];
       setHostedEvents(hosted);
 
       // Attending events
@@ -93,7 +95,6 @@ export default function MyEvents() {
 
       if (participantError) throw participantError;
 
-      // Filter out any null events just in case
       const validParticipants = participantData?.filter((p: any) => p.events !== null) || [];
 
       const attending = validParticipants.map((p: any) => ({
@@ -108,20 +109,18 @@ export default function MyEvents() {
         capacity: p.events.capacity,
       }));
 
-      // Fetch host usernames
-      const hostIds = attending.map(e => e.host);
+      const hostIds = attending.map((e) => e.host);
       const { data: profiles } = await supabase
         .from("profiles")
         .select("id, username")
         .in("id", hostIds);
 
-      const attendingWithHostName = attending.map(e => ({
+      const attendingWithHostName = attending.map((e) => ({
         ...e,
-        hostName: profiles?.find(p => p.id === e.host)?.username || "Unknown",
+        hostName: profiles?.find((p) => p.id === e.host)?.username || "Unknown",
       }));
 
       setAttendingEvents(attendingWithHostName);
-
     } catch (err) {
       console.error("Failed to fetch events", err);
     } finally {
@@ -129,21 +128,26 @@ export default function MyEvents() {
     }
   };
 
-      const fetchRecommended = async () => {
-      const {
-        data: { user },
-        error,
-      } = await supabase.auth.getUser();
+  const fetchRecommended = async () => {
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser();
 
-      if (error || !user) return;
+    if (error || !user) return;
 
-      try {
-        const recEvents = await getRecommendedEvents(user.id);
-        setRecommendedEvents(recEvents || []);
-      } catch (err) {
-        console.error("Failed to fetch recommended events", err);
-      }
+    try {
+      const recEvents = await getRecommendedEvents(user.id);
+      setRecommendedEvents(recEvents || []);
+    } catch (err) {
+      console.error("Failed to fetch recommended events", err);
+    }
   };
+
+  // Sort hosted events by status
+  const sortedHosted = [...hostedEvents].sort(
+    (a, b) => a.status?.localeCompare(b.status || "") || 0
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-r from-teal-400 to-cyan-500 relative">
@@ -184,7 +188,7 @@ export default function MyEvents() {
             <RecommendedEvents events={recommendedEvents} />
           </div>
         )}
-        
+
         {activeTab === "attending" ? (
           attendingEvents.map((event, index) => (
             <div
@@ -211,8 +215,8 @@ export default function MyEvents() {
               </div>
             </div>
           ))
-        ) : hostedEvents.length > 0 ? (
-          hostedEvents.map((event) => (
+        ) : sortedHosted.length > 0 ? (
+          sortedHosted.map((event) => (
             <div
               key={event.id}
               className="bg-white shadow-md rounded-md p-4 w-[700px] flex items-center mb-4"
@@ -230,11 +234,16 @@ export default function MyEvents() {
                 <p>
                   Attendees: <b>{event.attendees}</b> |{" "}
                   <button
+                    disabled={event.status === "cancelled"}
                     onClick={() => {
                       setSelectedEvent(event);
                       setShowAttendeeModal(true);
                     }}
-                    className="text-teal-500 underline hover:text-teal-600 transition"
+                    className={`underline transition ${
+                      event.status === "cancelled"
+                        ? "text-gray-400 cursor-not-allowed"
+                        : "text-teal-500 hover:text-teal-600"
+                    }`}
                   >
                     Attendee List
                   </button>
@@ -243,17 +252,40 @@ export default function MyEvents() {
 
               <div className="flex flex-col gap-2">
                 <Link href={`/host/EditCancel?event_id=${event.id}&mode=edit`}>
-                  <button className="bg-teal-400 text-white px-4 py-1 rounded hover:bg-teal-500">
+                  <button
+                    disabled={event.status === "cancelled"}
+                    className={`px-4 py-1 rounded ${
+                      event.status === "cancelled"
+                        ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                        : "bg-teal-400 text-white hover:bg-teal-500"
+                    }`}
+                  >
                     Edit Details
                   </button>
                 </Link>
+
                 <Link href="/groupchat">
-                  <button className="border border-teal-400 text-teal-500 px-4 py-1 rounded hover:bg-teal-100">
+                  <button
+                    disabled={event.status === "cancelled"}
+                    className={`border px-4 py-1 rounded ${
+                      event.status === "cancelled"
+                        ? "border-gray-300 text-gray-400 cursor-not-allowed"
+                        : "border-teal-400 text-teal-500 hover:bg-teal-100"
+                    }`}
+                  >
                     Group Chat
                   </button>
                 </Link>
+
                 <Link href={`/host/EditCancel?event_id=${event.id}&mode=cancel`}>
-                  <button className="border border-red-400 text-red-500 px-4 py-1 rounded hover:bg-red-100">
+                  <button
+                    disabled={event.status === "cancelled"}
+                    className={`border px-4 py-1 rounded ${
+                      event.status === "cancelled"
+                        ? "border-gray-300 text-gray-400 cursor-not-allowed"
+                        : "border-red-400 text-red-500 hover:bg-red-100"
+                    }`}
+                  >
                     Cancel Event
                   </button>
                 </Link>
@@ -279,12 +311,10 @@ export default function MyEvents() {
           )}
         </div>
       </div>
- 
-      {/* Attendee List Modal */}
+
       {showAttendeeModal && selectedEvent && (
         <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[80vh] overflow-hidden">
-            {/* Modal Header */}
             <div className="bg-gradient-to-r from-teal-400 to-cyan-500 p-4 text-white">
               <div className="flex justify-between items-center">
                 <h2 className="text-xl font-bold">Attendee List</h2>
@@ -300,7 +330,6 @@ export default function MyEvents() {
               </p>
             </div>
 
-            {/* Modal Body */}
             <div className="p-4 max-h-96 overflow-y-auto">
               <div className="space-y-3">
                 {(selectedEvent.attendeeNames || defaultAttendees).map((name, i) => (
@@ -321,7 +350,6 @@ export default function MyEvents() {
               </div>
             </div>
 
-            {/* Modal Footer */}
             <div className="bg-gray-50 px-4 py-3 border-t border-gray-200">
               <div className="flex justify-between text-sm text-gray-600">
                 <span>Total attendees: {(selectedEvent.attendeeNames || defaultAttendees).length}</span>
