@@ -1,5 +1,8 @@
 "use client";
-import React, { useState } from "react";
+
+import React, { useState, useEffect } from "react";
+import { createClient } from "@/utils/supabase/client";
+import { useRouter } from "next/navigation";
 
 const mockEvents = [
   { id: 1, title: "Badminton Meetup", date: "2025-10-12", location: "NTU Hall 2" },
