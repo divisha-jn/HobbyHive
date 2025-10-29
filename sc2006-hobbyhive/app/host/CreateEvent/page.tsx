@@ -27,6 +27,12 @@ interface EventData {
 
 export default function CreateEvent() {
   const supabase = createClient();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const eventId = searchParams.get("eventId");
+
+  const [eventToEdit, setEventToEdit] = useState<EventData | null>(null);
+
   const [title, setTitle] = useState("");
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
@@ -40,7 +46,6 @@ export default function CreateEvent() {
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: boolean }>({});
-  
   const [useMapPicker, setUseMapPicker] = useState(false);
 
   const categories = [
