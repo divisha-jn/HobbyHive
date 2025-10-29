@@ -6,6 +6,7 @@ import { createClient } from "@/utils/supabase/client";
 import Link from "next/link";
 import { getRecommendedEvents } from "@/utils/supabase/participantService";
 import RecommendedEvents from "../participant/RecommendedEvents";
+import { useRouter } from "next/navigation";
 
 interface Event {
   id: string;
@@ -15,9 +16,12 @@ interface Event {
   location: string;
   image?: string;
   host?: string;
+  hostName?: string;
   status?: string;
   attendees?: string;
   attendeeNames?: string[];
+  capacity?: string;
+  disabled?: boolean; // optional disable flag
 }
 
 export default function MyEvents() {
@@ -30,45 +34,56 @@ export default function MyEvents() {
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
   const defaultAttendees = ["You"];
+  const router = useRouter();
 
-    useEffect(() => {
-      fetchMyEvents();
-      fetchRecommended();
-    }, []);
-  
+  useEffect(() => {
+    fetchMyEvents();
+    fetchRecommended();
+  }, []);
+
   const fetchMyEvents = async () => {
     setLoading(true);
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
-
-    if (userError || !user) {
-      console.error(userError);
-      setLoading(false);
-      return;
-    }
-    const userId = user.id;
-
-    const fallbackImage =
-    "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&h=600&fit=crop";
-
     try {
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError || !user) {
+        console.error(userError);
+        setLoading(false);
+        return;
+      }
+      const userId = user.id;
+
+      const fallbackImage =
+        "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&h=600&fit=crop";
+
+      // Hosted events
       const { data: hostedData, error: hostedError } = await supabase
         .from("events")
         .select("*")
         .eq("host_id", userId)
-        .in("status", ["pending", "approved", "rejected"])
         .order("date", { ascending: true });
 
       if (hostedError) throw hostedError;
-      
-      const hosted = hostedData?.map((e: any) => ({
+
+      let hosted = hostedData?.map((e: any) => ({
         ...e,
         image: e.image_url || fallbackImage,
+        disabled: false, // default, implement logic if needed
       })) || [];
-      setHostedEvents(hosted || []);
 
+      const statusOrder = { approved: 1, pending: 2, cancelled: 3 } as const;
+      hosted.sort((a, b) => {
+        const aStatus = a.status as keyof typeof statusOrder;
+        const bStatus = b.status as keyof typeof statusOrder;
+        return (statusOrder[aStatus] ?? 99) - (statusOrder[bStatus] ?? 99);
+      });
+
+      setHostedEvents(hosted);
+
+      // Attending events
       const { data: participantData, error: participantError } = await supabase
         .from("event_participants")
         .select(`
@@ -81,14 +96,18 @@ export default function MyEvents() {
             location,
             image_url,
             host_id,
-            status
+            status,
+            capacity
           )
         `)
-        .eq("user_id", userId);
+        .eq("user_id", userId)
+        .eq("events.status", "approved");
 
       if (participantError) throw participantError;
 
-      const attending = participantData?.map((p: any) => ({
+      const validParticipants = participantData?.filter((p: any) => p.events !== null) || [];
+
+      const attending = validParticipants.map((p: any) => ({
         id: p.event_id,
         title: p.events.title,
         date: p.events.date,
@@ -97,29 +116,43 @@ export default function MyEvents() {
         image: p.events.image_url || fallbackImage,
         host: p.events.host_id,
         status: p.events.status,
-      })) || [];
+        capacity: p.events.capacity,
+      }));
 
-      setAttendingEvents(attending);
+      const hostIds = attending.map(e => e.host);
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, username")
+        .in("id", hostIds);
+
+      const attendingWithHostName = attending.map(e => ({
+        ...e,
+        hostName: profiles?.find(p => p.id === e.host)?.username || "Unknown",
+      }));
+
+      setAttendingEvents(attendingWithHostName);
+
     } catch (err) {
       console.error("Failed to fetch events", err);
     } finally {
       setLoading(false);
     }
   };
-      const fetchRecommended = async () => {
-      const {
-        data: { user },
-        error,
-      } = await supabase.auth.getUser();
 
-      if (error || !user) return;
+  const fetchRecommended = async () => {
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser();
 
-      try {
-        const recEvents = await getRecommendedEvents(user.id);
-        setRecommendedEvents(recEvents || []);
-      } catch (err) {
-        console.error("Failed to fetch recommended events", err);
-      }
+    if (error || !user) return;
+
+    try {
+      const recEvents = await getRecommendedEvents(user.id);
+      setRecommendedEvents(recEvents || []);
+    } catch (err) {
+      console.error("Failed to fetch recommended events", err);
+    }
   };
 
   return (
@@ -161,7 +194,7 @@ export default function MyEvents() {
             <RecommendedEvents events={recommendedEvents} />
           </div>
         )}
-        
+
         {activeTab === "attending" ? (
           attendingEvents.map((event, index) => (
             <div
@@ -178,7 +211,7 @@ export default function MyEvents() {
                 <p>Date: {event.date}</p>
                 <p>Time: {event.time}</p>
                 <p>
-                  Hosted By: {event.host} |{" "}
+                  Hosted By: {event.hostName} |{" "}
                   <Link href="/groupchat">
                     <button className="border border-teal-400 text-teal-500 px-4 py-1 rounded hover:bg-teal-100 transition">
                       Group Chat
@@ -192,7 +225,7 @@ export default function MyEvents() {
           hostedEvents.map((event) => (
             <div
               key={event.id}
-              className="bg-white shadow-md rounded-md p-4 w-[700px] flex items-center mb-4"
+              className={`bg-white shadow-md rounded-md p-4 w-[700px] flex items-center mb-4 ${event.disabled ? "opacity-50 pointer-events-none" : ""}`}
             >
               <img
                 src={event.image}
@@ -219,24 +252,56 @@ export default function MyEvents() {
               </div>
 
               <div className="flex flex-col gap-2">
-                <button className="bg-teal-400 text-white px-4 py-1 rounded hover:bg-teal-500">
+                <Link href={`/host/EditCancel?event_id=${event.id}&mode=edit`}>
+                  <button
+                    className="bg-teal-400 text-white px-4 py-1 rounded hover:bg-teal-500 disabled:opacity-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={event.status === "cancelled"} // disable if event canceled
+                  >
+                    Edit Details
+                  </button>
+                </Link>
+
+                {/* Old Edit button commented for reference
+                <button
+                  className="bg-teal-400 text-white px-4 py-1 rounded hover:bg-teal-500"
+                  onClick={() => router.push(`/host/CreateEvent?eventId=${event.id}`)}
+                >
                   Edit Details
-                </button>
+                </button> 
+                */}
+
                 <Link href="/groupchat">
-                  <button className="border border-teal-400 text-teal-500 px-4 py-1 rounded hover:bg-teal-100">
+                  <button className="border border-teal-400 text-teal-500 px-4 py-1 rounded hover:bg-teal-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={event.status === "cancelled"}>
                     Group Chat
                   </button>
                 </Link>
+
+                <Link href={`/host/EditCancel?event_id=${event.id}&mode=cancel`}>
+                  <button
+                    className="border border-red-400 text-red-500 px-4 py-1 rounded hover:bg-red-100 disabled:opacity-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={event.status === "cancelled"} // disable if event canceled
+                  >
+                    Cancel Event
+                  </button>
+                </Link>
+
+                {/* Old Cancel button commented for reference
                 <button
                   className="border border-red-400 text-red-500 px-4 py-1 rounded hover:bg-red-100"
-                  onClick={() => {
-                    const updated = hostedEvents.filter((e) => e.id !== event.id);
-                    setHostedEvents(updated);
-                    localStorage.setItem("hostedEvents", JSON.stringify(updated));
+                  onClick={async () => {
+                    try {
+                      await supabase.from("events").delete().eq("id", event.id);
+                      const updated = hostedEvents.filter((e) => e.id !== event.id);
+                      setHostedEvents(updated);
+                    } catch (err) {
+                      console.error("Failed to delete event:", err);
+                    }
                   }}
                 >
                   Cancel Event
                 </button>
+                */}
               </div>
             </div>
           ))
@@ -259,7 +324,7 @@ export default function MyEvents() {
           )}
         </div>
       </div>
- 
+
       {/* Attendee List Modal */}
       {showAttendeeModal && selectedEvent && (
         <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
@@ -305,7 +370,7 @@ export default function MyEvents() {
             <div className="bg-gray-50 px-4 py-3 border-t border-gray-200">
               <div className="flex justify-between text-sm text-gray-600">
                 <span>Total attendees: {(selectedEvent.attendeeNames || defaultAttendees).length}</span>
-                <span>Capacity: 8</span>
+                <span>Capacity: {selectedEvent.capacity || 0}</span>
               </div>
             </div>
           </div>

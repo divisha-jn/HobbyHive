@@ -12,6 +12,7 @@ import {
   uploadProfilePicture,
 } from "@/utils/supabase/account";
 import FollowedUsers from "../participant/FollowedUsers/FollowedUsers";
+import { createClient } from "@/utils/supabase/client";
 
 interface FollowingUser {
   id: number;
@@ -36,6 +37,9 @@ const ProfilePage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState("");
   const [isEditing, setIsEditing] = useState(false);
+  const [eventsParticipatedCount, setEventsParticipatedCount] = useState(0);
+  const [eventsHostedCount, setEventsHostedCount] = useState(0);
+
   const router = useRouter();
 
   const following: FollowingUser[] = [
@@ -60,22 +64,49 @@ const ProfilePage: React.FC = () => {
     loadUser();
   }, []);
 
+  // Load hosted & participated event counts
+  useEffect(() => {
+    const loadCounts = async () => {
+      if (!user) return;
+      const supabase = await createClient();
+      try {
+        // Count hosted events
+        const { data: hostedData, error: hostedError } = await supabase
+          .from("events")
+          .select("id", { count: "exact" })
+          .eq("host_id", user.id)
+          .eq("status", "approved");
+        if (hostedError) throw hostedError;
+        setEventsHostedCount(hostedData?.length ?? 0);
+
+        // Count participated events
+        const { data: participantData, error: participantError } = await supabase
+          .from("event_participants")
+          .select("event_id", { count: "exact" })
+          .eq("user_id", user.id)
+          .eq("events.status", "approved"); // you may need a proper join depending on Supabase setup
+        if (participantError) throw participantError;
+        setEventsParticipatedCount(participantData?.length ?? 0);
+      } catch (err) {
+        console.error("Failed to fetch event counts", err);
+      }
+    };
+
+    loadCounts();
+  }, [user]);
+
   const handleFindEvents = () => router.push("/MyEvents");
   const handleCreateEvent = () => router.push("/host/CreateEvent");
   const handleParticipantDashboard = () => router.push("/participant");
-  
 
   const handleFollowingClick = (user: FollowingUser) => {
     console.log("Clicked on following user:", user.name);
-    // router.push(`/profile/${user.id}`);
   };
 
   const handleGroupChatClick = (group: GroupChat) => {
     console.log("Clicked on group chat:", group.name);
-    // router.push(`/chat/${group.id}`);
   };
 
-  // Supabase update logic
   const handleUpdate = async () => {
     if (!user) return;
     setLoading(true);
@@ -122,12 +153,8 @@ const ProfilePage: React.FC = () => {
     setIsEditing(!isEditing);
   };
 
-    const handleCancelEdit = () => {
-    // Reset all fields to their original values
-    if (profile) {
-      setUsername(profile.username);
-    }
-    //setAddress();
+  const handleCancelEdit = () => {
+    if (profile) setUsername(profile.username);
     setPassword("");
     setProfilePic(null);
     setIsEditing(false);
@@ -138,70 +165,64 @@ const ProfilePage: React.FC = () => {
 
   return (
     <div className="bg-gradient-to-r from-teal-400 to-cyan-500">
-      {/* Navbar */}
+      {/* Navbar wrapper fixes TS error */}
       <div className="absolute top-2 left-4 z-50">
         <Navbar />
       </div>
 
-      {/* Header */}
       <Header />
 
-      {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column - Profile Info */}
+          {/* Left Column */}
           <div className="lg:col-span-2 bg-white rounded-lg shadow-md p-6">
             <div className="flex flex-col md:flex-row gap-6">
               {/* Profile Picture */}
               <div className="flex flex-col items-center">
-                <div className="flex flex-col items-center">
-                  <div className="w-40 h-40 bg-gray-200 rounded-full flex items-center justify-center mb-4 overflow-hidden">
-                    {profile?.profile_picture ? (
-                      <img
-                        src={`${profile.profile_picture}?t=${Date.now()}`}
-                        alt="Profile"
-                        className="w-full h-full object-cover"
+                <div className="w-40 h-40 bg-gray-200 rounded-full flex items-center justify-center mb-4 overflow-hidden">
+                  {profile?.profile_picture ? (
+                    <img
+                      src={`${profile.profile_picture}?t=${Date.now()}`}
+                      alt="Profile"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <svg
+                      className="w-24 h-24 text-gray-500"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                        clipRule="evenodd"
                       />
-                    ) : (
-                      <svg
-                        className="w-24 h-24 text-gray-500"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                    )}
-                  </div>
-
-                  {isEditing && (
-                    <div className="flex flex-col items-center mt-4 mb-4"> {/* Added margin top/bottom */}
-                      <label
-                        htmlFor="profilePic"
-                        className="cursor-pointer bg-blue-500 hover:bg-blue-600 text-white text-sm px-4 py-2 rounded-md shadow-sm transition"
-                      >
-                        Upload New Photo
-                      </label>
-                      <input
-                        id="profilePic"
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => setProfilePic(e.target.files?.[0] ?? null)}
-                        className="hidden"
-                      />
-
-                      {profilePic && (
-                        <p className="text-xs text-gray-600 mt-2 truncate max-w-[10rem]">
-                          {profilePic.name}
-                        </p>
-                      )}
-                    </div>
+                    </svg>
                   )}
                 </div>
 
+                {isEditing && (
+                  <div className="flex flex-col items-center mt-4 mb-4">
+                    <label
+                      htmlFor="profilePic"
+                      className="cursor-pointer bg-blue-500 hover:bg-blue-600 text-white text-sm px-4 py-2 rounded-md shadow-sm transition"
+                    >
+                      Upload New Photo
+                    </label>
+                    <input
+                      id="profilePic"
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setProfilePic(e.target.files?.[0] ?? null)}
+                      className="hidden"
+                    />
+                    {profilePic && (
+                      <p className="text-xs text-gray-600 mt-2 truncate max-w-[10rem]">
+                        {profilePic.name}
+                      </p>
+                    )}
+                  </div>
+                )}
 
                 <button
                   onClick={handleEditProfile}
@@ -213,21 +234,21 @@ const ProfilePage: React.FC = () => {
                 </button>
 
                 {isEditing && (
-                    <button
-                      onClick={handleCancelEdit}
-                      className="border border-red-400 px-4 py-1 rounded hover:bg-red-100 rounded-lg transition shadow-md hover:opacity-80 text-sm mt-2"
-                      disabled={loading}
-                    >
-                      ❌ Cancel
-                    </button>
-                  )}
-                </div>
+                  <button
+                    onClick={handleCancelEdit}
+                    className="border border-red-400 px-4 py-1 rounded hover:bg-red-100 rounded-lg transition shadow-md hover:opacity-80 text-sm mt-2"
+                    disabled={loading}
+                  >
+                    ❌ Cancel
+                  </button>
+                )}
+              </div>
 
-              {/* Stats and Profile Fields */}
+              {/* Stats & Profile Fields */}
               <div className="flex-1">
                 <div className="flex gap-20 mb-6">
                   <div className="text-center">
-                    <div className="text-5xl font-bold">1</div>
+                    <div className="text-5xl font-bold">{eventsParticipatedCount}</div>
                     <div className="text-sm text-gray-600">
                       Events
                       <br />
@@ -235,7 +256,7 @@ const ProfilePage: React.FC = () => {
                     </div>
                   </div>
                   <div className="text-center">
-                    <div className="text-5xl font-bold">1</div>
+                    <div className="text-5xl font-bold">{eventsHostedCount}</div>
                     <div className="text-sm text-gray-600">
                       Events
                       <br />
@@ -320,7 +341,6 @@ const ProfilePage: React.FC = () => {
                   )}
                 </div>
 
-                {/* Status Feedback */}
                 {status && (
                   <pre className="mt-4 p-3 bg-gray-100 text-sm rounded whitespace-pre-wrap">
                     {status}
@@ -330,14 +350,12 @@ const ProfilePage: React.FC = () => {
             </div>
           </div>
 
-          {/* Right Column - Following and Group Chats */}
+          {/* Right Column */}
           <div className="space-y-6">
-            {/* Following Section */}
-              <div className="space-y-2">
-                <FollowedUsers />
-              </div>
+            <div className="space-y-2">
+              <FollowedUsers />
+            </div>
 
-            {/* Group Chats Section */}
             <div className="bg-white rounded-lg shadow-md p-4">
               <h2 className="text-xl font-bold mb-4">Group Chats</h2>
               <div className="space-y-2">

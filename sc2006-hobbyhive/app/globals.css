@@ -3,7 +3,6 @@
 @import "leaflet/dist/leaflet.css";
 
 body{ 
-    padding:1%rem;
     color: #363636;
     background-color: lightgray;
 }

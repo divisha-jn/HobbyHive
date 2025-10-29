@@ -37,34 +37,34 @@ export default function EventListing({ eventId }: EventListingProps) {
   const [message, setMessage] = useState("");
   const [attendees, setAttendees] = useState<any[]>([]);
   const fetchAttendees = async () => {
-    try {
-      const { data: participantData, error } = await supabase
-        .from("event_participants")
-        .select(`
-          user_id,
-          profiles (
-            full_name,
-            profile_picture
-          )
-        `)
-        .eq("event_id", eventId);
+  try {
+    const { data: participantData, error } = await supabase
+      .from("event_participants")
+      .select(`
+        user_id,
+        profiles (
+          username,
+          profile_picture
+        )
+      `)
+      .eq("event_id", eventId);
 
-      if (error) {
-        console.error("Error fetching attendees:", error);
-        return;
-      }
-
-      const attendeeList = participantData?.map((p: any, index: number) => ({
-        id: index,
-        name: p.profiles?.full_name || "Unknown",
-        color: ['bg-blue-400', 'bg-purple-400', 'bg-pink-400', 'bg-green-400', 'bg-yellow-400'][index % 5],
-      })) || [];
-
-      setAttendees(attendeeList);
-    } catch (err) {
-      console.error("Error loading attendees:", err);
+    if (error) {
+      console.error("Error fetching attendees:", error);
+      return;
     }
-  };
+
+    const attendeeList = participantData?.map((p: any, index: number) => ({
+      id: index,
+      name: p.profiles?.username || "Unknown",
+      color: ['bg-blue-400', 'bg-purple-400', 'bg-pink-400', 'bg-green-400', 'bg-yellow-400'][index % 5],
+    })) || [];
+
+    setAttendees(attendeeList);
+  } catch (err) {
+    console.error("Error loading attendees:", err);
+  }
+};
 
   useEffect(() => {
     const fetchEvent = async () => {
@@ -84,12 +84,12 @@ export default function EventListing({ eventId }: EventListingProps) {
           // Fetch host name
           const { data: userData } = await supabase
             .from("profiles")
-            .select("full_name")
+            .select("username")
             .eq("id", eventData.host_id)
             .single();
 
           if (userData) {
-            setHostName(userData.full_name || "Host");
+            setHostName(userData.username || "Host");
           }
 
           await fetchAttendees();
@@ -118,53 +118,53 @@ export default function EventListing({ eventId }: EventListingProps) {
   }, [eventId, supabase]);
 
   const handleJoinEvent = async () => {
-    if (!event) return;
+  if (!event) return;
 
-    setIsJoining(true);
-    setMessage("");
+  setIsJoining(true);
+  setMessage("");
 
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        setMessage("Please log in to join the event");
-        setIsJoining(false);
-        return;
-      }
-
-      // Check current participant count
-      const { count, error: countError } = await supabase
-        .from("event_participants")
-        .select("*", { count: "exact", head: true })
-        .eq("event_id", eventId);
-
-      if (count !== null && count >= event.capacity) {
-        setMessage("Event is Full");
-        setIsJoining(false);
-        return;
-      }
-
-      // Add user to event participants
-      const { error: joinError } = await supabase
-        .from("event_participants")
-        .insert([{ user_id: user.id, event_id: eventId }]);
-
-      if (joinError) {
-        console.error("Error joining event:", joinError);
-        setMessage(joinError.message || "Error joining event");
-      } else {
-        setIsAttending(true);
-        setMessage("Successfully joined!");
-        // Update current attendees count
-        setEvent(prev => prev ? { ...prev, current_attendees: (prev.current_attendees || 0) + 1 } : null);
-        await fetchAttendees();
-      }
-    } catch (err) {
-      console.error("Unexpected error:", err);
-      setMessage("Error joining event");
-    } finally {
+  try {
+    const { data, error: authError } = await supabase.auth.getUser();
+    if (authError || !data.user) {
+      setMessage("Please log in to join the event");
       setIsJoining(false);
+      return;
     }
-  };
+    const user = data.user;
+
+    // Check current participant count
+    const { count } = await supabase
+      .from("event_participants")
+      .select("*", { count: "exact", head: true })
+      .eq("event_id", eventId);
+
+    if (count !== null && count >= event.capacity) {
+      setMessage("Event is Full");
+      setIsJoining(false);
+      return;
+    }
+
+    // Add user to event participants
+    const { error: joinError } = await supabase
+      .from("event_participants")
+      .insert([{ user_id: user.id, event_id: eventId }]);
+
+    if (joinError) {
+      console.error("Error joining event:", joinError);
+      setMessage(joinError.message || "Error joining event");
+    } else {
+      setIsAttending(true);
+      setMessage("Successfully joined!");
+      setEvent(prev => prev ? { ...prev, current_attendees: (prev.current_attendees || 0) + 1 } : null);
+      await fetchAttendees();
+    }
+  } catch (err) {
+    console.error("Unexpected error:", err);
+    setMessage("Error joining event");
+  } finally {
+    setIsJoining(false);
+  }
+};  
 
   if (loading) {
     return (
@@ -334,6 +334,7 @@ export default function EventListing({ eventId }: EventListingProps) {
       {/* Bottom Action Buttons */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-cyan-100 p-4">
         {isAttending ? (
+          /* this button to be implemented/linked to chat feature */
           <button className="w-full py-3 bg-gradient-to-r from-cyan-400 to-cyan-500 text-white font-semibold rounded-lg hover:from-cyan-500 hover:to-cyan-600 transition shadow-lg">
             Go to Chat
           </button>
