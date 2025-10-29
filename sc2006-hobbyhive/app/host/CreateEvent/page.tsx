@@ -5,6 +5,7 @@ import { createClient } from "@/utils/supabase/client";
 import Header from "../../components/header";
 import Navbar from "../../components/Navbar";
 import dynamic from "next/dynamic";
+import { useSearchParams, useRouter } from "next/navigation";
 
 const LocationMapPicker = dynamic(
   () => import("../../components/LocationMapPicker"),
