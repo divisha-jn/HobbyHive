@@ -4,19 +4,22 @@ import React, { useState, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
 
-const mockEvents = [
-  { id: 1, title: "Badminton Meetup", date: "2025-10-12", location: "NTU Hall 2" },
-  { id: 2, title: "Art Jam", date: "2025-11-03", location: "Jurong East CC" },
-];
+interface Event {
+  id: string;
+  title: string;
+  date: string;
+  location: string;
+}
 
 export default function EditCancelPage() {
-  const [events, setEvents] = useState(mockEvents);
+  const supabase = createClient();
+  const router = useRouter();
+  const [events, setEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleCancel = (id: number) => {
-    const updated = events.filter((e) => e.id !== id);
-    setEvents(updated);
-    alert("Event cancelled!");
-  };
+  useEffect(() => {
+    fetchHostedEvents();
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50 flex justify-center p-6">
