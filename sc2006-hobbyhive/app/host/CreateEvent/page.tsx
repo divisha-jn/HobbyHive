@@ -69,6 +69,23 @@ export default function CreateEvent() {
     "All levels welcome",
   ];
 
+  // Fetch event data if editing
+  useEffect(() => {
+    if (!eventId) return;
+
+    const fetchEvent = async () => {
+      const { data, error } = await supabase
+        .from("events")
+        .select("*")
+        .eq("id", eventId)
+        .single();
+
+      if (error) {
+        console.error("Failed to fetch event:", error);
+        return;
+      }
+
+      
   const handleLocationSelect = (locationName: string) => {
     setLocation(locationName);
     setErrors((prev) => ({ ...prev, location: false }));
