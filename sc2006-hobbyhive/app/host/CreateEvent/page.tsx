@@ -152,23 +152,23 @@ export default function CreateEvent() {
     }
 
     try {
-      const { data: userData, error: userError } = await supabase.auth.getUser();
-      if (userError || !userData.user) {
-        setMessage("Please log in before creating an event.");
-        setIsLoading(false);
-        return;
-      }
-      const userId = userData.user.id;
-
-      let imageUrl = "https://images.unsplash.com/photo-1507525428034-b723cf961d3e";
+      // Upload image if new file selected
+      let imageUrl = eventToEdit?.image_url || "https://images.unsplash.com/photo-1507525428034-b723cf961d3e";
       if (imageFile) {
         const fileExt = imageFile.name.split(".").pop();
         const uniqueName = `${title.replace(/\s+/g, "_")}_${Date.now()}.${fileExt}`;
         const filePath = `${userId}/${uniqueName}`;
-
         const { error: uploadError } = await supabase.storage
           .from("event-photo")
           .upload(filePath, imageFile);
+        if (uploadError) {
+          setMessage("Error uploading image: " + uploadError.message);
+          setIsLoading(false);
+          return;
+        }
+        const { data: publicUrlData } = supabase.storage.from("event-photo").getPublicUrl(filePath);
+        imageUrl = publicUrlData.publicUrl;
+      }
 
         if (uploadError) {
           console.error("Upload error:", uploadError.message);
