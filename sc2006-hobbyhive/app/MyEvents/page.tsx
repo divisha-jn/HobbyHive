@@ -233,10 +233,14 @@ export default function MyEvents() {
                 </Link>
                 <button
                   className="border border-red-400 text-red-500 px-4 py-1 rounded hover:bg-red-100"
-                  onClick={() => {
-                    const updated = hostedEvents.filter((e) => e.id !== event.id);
-                    setHostedEvents(updated);
-                    localStorage.setItem("hostedEvents", JSON.stringify(updated));
+                  onClick={async () => {
+                    try {
+                      await supabase.from("events").delete().eq("id", event.id);
+                      const updated = hostedEvents.filter((e) => e.id !== event.id);
+                      setHostedEvents(updated);
+                    } catch (err) {
+                      console.error("Failed to delete event:", err);
+                    }
                   }}
                 >
                   Cancel Event
