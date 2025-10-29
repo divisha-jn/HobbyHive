@@ -220,7 +220,10 @@ export default function MyEvents() {
               </div>
 
               <div className="flex flex-col gap-2">
-                <button className="bg-teal-400 text-white px-4 py-1 rounded hover:bg-teal-500">
+                <button
+                  className="bg-teal-400 text-white px-4 py-1 rounded hover:bg-teal-500"
+                  onClick={() => router.push(`/host/CreateEvent?eventId=${event.id}`)}
+                >
                   Edit Details
                 </button>
                 <Link href="/groupchat">
