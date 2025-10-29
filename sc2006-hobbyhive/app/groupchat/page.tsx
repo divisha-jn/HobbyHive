@@ -57,7 +57,7 @@ const Page = () => {
       return {
         chat_id:item.group_chats.id,
         event_title: event?.title ?? "unnamed Event",
-        img_url:event?.image_url ?? "/placeholder.png",
+        image_url:event?.image_url ?? "/placeholder.png",
       };
     });
 
@@ -266,7 +266,7 @@ const Page = () => {
                     <img 
                     src={chat.img_url}
                     alt={chat.event_title}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover rounded-2xl"
                     />
                   </div>
                 <div className="size-10 width-full break-words w-[150px]">
