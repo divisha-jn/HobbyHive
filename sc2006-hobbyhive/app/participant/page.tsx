@@ -3,28 +3,42 @@ import React, { useEffect, useState } from 'react';
 import ParticipantEvents from './ParticipantEvents';
 import RecommendedEvents from './RecommendedEvents';
 import FollowedUsers from './FollowedUsers/FollowedUsers';
-import { getParticipantEvents, getRecommendedEvents } from '@/utils/supabase/participantService';
+import { getParticipantEvents, joinEvent, getAvailableEvents } from '@/utils/supabase/participantService';
 
 export default function ParticipantPage() {
-  const [events, setEvents] = useState<any[]>([]);
-  const [recommendations, setRecommendations] = useState<any[]>([]);
+  const [joinedEvents, setJoinedEvents] = useState<any[]>([]);
+  const [availableEvents, setAvailableEvents] = useState<any[]>([]);
 
   useEffect(() => {
     async function loadData() {
-      const joinedEvents = await getParticipantEvents();
-      const recEvents = await getRecommendedEvents();
-      setEvents(joinedEvents);
-      setRecommendations(recEvents);
+      const joined = await getParticipantEvents();
+      const available = await getAvailableEvents();
+      setJoinedEvents(joined);
+      setAvailableEvents(available);
     }
     loadData();
   }, []);
 
+  const handleJoin = (eventId: string) => {
+    const joinedEvent = availableEvents.find(e => e.id === eventId);
+    if (joinedEvent) {
+      setJoinedEvents(prev => [...prev, joinedEvent]);
+      setAvailableEvents(prev => prev.filter(e => e.id !== eventId));
+    }
+  };
+
   return (
-    <div className="p-6">
+    <div className="p-6 pb-32"> {/* extra bottom padding to make space for fixed join box */}
       <h1 className="text-3xl font-bold mb-4">Participant Dashboard</h1>
-      <RecommendedEvents events={recommendations} />
-      <ParticipantEvents events={events} />
+
+      <ParticipantEvents events={joinedEvents} />
       <FollowedUsers />
+
+      <RecommendedEvents
+        events={availableEvents}
+        joinedEventIds={joinedEvents.map(e => e.id)}
+        onJoin={handleJoin}
+      />
     </div>
   );
 }

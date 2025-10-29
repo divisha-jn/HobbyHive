@@ -10,7 +10,7 @@ export default function ParticipantEvents({ events }: { events: any[] }) {
       ) : (
         <ul className="space-y-2">
           {events.map((event) => (
-            <li key={event.id} className="p-4 bg-gray-100 rounded-md shadow">
+            <li key={`${event.id}-${event.name}`} className="p-4 bg-gray-100 rounded-md shadow">
               <h3 className="font-bold">{event.name}</h3>
               <p>{event.date} — {event.location}</p>
             </li>
