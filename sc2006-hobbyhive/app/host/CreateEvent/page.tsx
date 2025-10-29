@@ -99,7 +99,24 @@ export default function CreateEvent() {
       });
     };
 
-    
+    fetchEvent();
+  }, [eventId]);
+
+  // Initialize form values from eventToEdit
+  useEffect(() => {
+    if (eventToEdit) {
+      setTitle(eventToEdit.title);
+      setDate(eventToEdit.date);
+      setTime(eventToEdit.time);
+      setLocation(eventToEdit.location);
+      setDescription(eventToEdit.description);
+      setCapacity(eventToEdit.capacity);
+      setCategory(eventToEdit.category);
+      setSkillLevel(eventToEdit.skillLevel);
+    }
+  }, [eventToEdit]);
+
+  
   const handleLocationSelect = (locationName: string) => {
     setLocation(locationName);
     setErrors((prev) => ({ ...prev, location: false }));
