@@ -28,7 +28,7 @@ export const categoryLocationMapping: Record<string, CategoryLocationConfig> = {
   },
   
   "Gaming": {
-    allowedLocationTypes: ['clubs', 'parks'],
+    allowedLocationTypes: ['clubs'],
     primaryType: 'clubs',
     showMapPicker: true,
     description: "Select a community club or park for gaming activities"
