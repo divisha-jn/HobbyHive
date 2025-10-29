@@ -116,7 +116,6 @@ export default function CreateEvent() {
     }
   }, [eventToEdit]);
 
-  
   const handleLocationSelect = (locationName: string) => {
     setLocation(locationName);
     setErrors((prev) => ({ ...prev, location: false }));
@@ -124,21 +123,18 @@ export default function CreateEvent() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
     setIsLoading(true);
     setMessage("");
 
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
-
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      setMessage("Please log in before creating an event.");
+      setMessage("Please log in first.");
       setIsLoading(false);
       return;
     }
+    const userId = user.id;
 
+    // Validation
     const newErrors: { [key: string]: boolean } = {};
     if (!title) newErrors.title = true;
     if (!category) newErrors.category = true;
