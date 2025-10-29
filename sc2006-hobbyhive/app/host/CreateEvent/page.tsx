@@ -7,6 +7,7 @@ import Navbar from "../../components/Navbar";
 import dynamic from "next/dynamic";
 import { useSearchParams, useRouter } from "next/navigation";
 import { getLocationConfigForCategory } from "@/app/config/categoryLocationMapping";
+import LocationAutocompleteInput from "../../components/LocationAutocompleteInput";
 
 const LocationMapPicker = dynamic(
   () => import("../../components/LocationMapPicker"),
@@ -19,6 +20,8 @@ interface EventData {
   date: string;
   time: string;
   location: string;
+  latitude?: number;   // NEW
+  longitude?: number;  // NEW
   description: string;
   capacity: string;
   category: string;
@@ -38,6 +41,8 @@ export default function CreateEvent() {
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [location, setLocation] = useState("");
+  const [latitude, setLatitude] = useState<number | null>(null);  // NEW
+  const [longitude, setLongitude] = useState<number | null>(null); // NEW
   const [description, setDescription] = useState("");
   const [capacity, setCapacity] = useState("");
   const [category, setCategory] = useState("");
@@ -92,6 +97,8 @@ export default function CreateEvent() {
         date: data.date,
         time: data.time,
         location: data.location,
+        latitude: data.latitude,    // NEW
+        longitude: data.longitude,  // NEW
         description: data.description,
         capacity: data.capacity.toString(),
         category: data.category,
@@ -114,11 +121,19 @@ export default function CreateEvent() {
       setCapacity(eventToEdit.capacity);
       setCategory(eventToEdit.category);
       setSkillLevel(eventToEdit.skillLevel);
+      // Load coordinates - NEW
+      if (eventToEdit.latitude) setLatitude(eventToEdit.latitude);
+      if (eventToEdit.longitude) setLongitude(eventToEdit.longitude);
     }
   }, [eventToEdit]);
 
-  const handleLocationSelect = (locationName: string) => {
+  // UPDATED - now accepts coordinates
+  const handleLocationSelect = (locationName: string, lat?: number, lng?: number) => {
     setLocation(locationName);
+    if (lat !== undefined && lng !== undefined) {
+      setLatitude(lat);
+      setLongitude(lng);
+    }
     setErrors((prev) => ({ ...prev, location: false }));
   };
 
@@ -178,7 +193,7 @@ export default function CreateEvent() {
       }
 
       if (eventToEdit) {
-        // Update existing event
+        // Update existing event - ADDED latitude/longitude
         const { error } = await supabase
           .from("events")
           .update({
@@ -186,6 +201,8 @@ export default function CreateEvent() {
             date,
             time,
             location,
+            latitude,     // NEW
+            longitude,    // NEW
             description,
             capacity: parseInt(capacity),
             category,
@@ -201,13 +218,15 @@ export default function CreateEvent() {
           setMessage("Event updated successfully!");
         }
       } else {
-        // Create new event
+        // Create new event - ADDED latitude/longitude
         const { error } = await supabase.from("events").insert([
           {
             title,
             date,
             time,
             location,
+            latitude,     // NEW
+            longitude,    // NEW
             description,
             capacity: parseInt(capacity),
             category,
@@ -272,6 +291,8 @@ export default function CreateEvent() {
                   setDate("");
                   setTime("");
                   setLocation("");
+                  setLatitude(null);   // NEW
+                  setLongitude(null);  // NEW
                   setDescription("");
                   setCapacity("");
                   setCategory("");
@@ -375,7 +396,7 @@ export default function CreateEvent() {
                   </div>
                 </div>
 
-                {/* LOCATION WITH CATEGORY-BASED MAP PICKER */}
+                {/* LOCATION WITH AUTOCOMPLETE */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <label className="block font-semibold">Location *</label>
@@ -426,13 +447,15 @@ export default function CreateEvent() {
                       )}
                     </>
                   ) : (
-                    <input
-                      type="text"
-                      value={location}
-                      onChange={(e) => setLocation(e.target.value)}
-                      className={getInputClassName("location")}
-                      placeholder="e.g., Ang Mo Kio Community Club"
+                    <LocationAutocompleteInput
+                      location={location}
+                      setLocation={setLocation}
+                      onCoordinatesSelect={(lat, lng) => {
+                        setLatitude(lat);
+                        setLongitude(lng);
+                      }}
                       disabled={!category}
+                      className={getInputClassName("location")}
                     />
                   )}
                 </div>
