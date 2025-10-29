@@ -1,53 +1,65 @@
 'use client';
-import React from 'react';
-import Link from 'next/link';
+import React, { useState, useEffect } from 'react';
+import { joinEvent } from '@/utils/supabase/participantService';
 
 interface Event {
   id: string;
-  title: string;
-  date: string;
-  time: string;
-  location: string;
-  image?: string;
-  host?: string;
+  title?: string;
+  name?: string;
+  category?: string;
+  location?: string;
 }
 
-export default function RecommendedEvents({ events }: { events: Event[] }) {
-  if (events.length === 0) {
-    return (
-      <section className="my-6 bg-white shadow-md rounded-md p-4 w-full">
-        <h2 className="text-2xl font-semibold mb-3">Recommended Events</h2>
-        <p>No recommendations available.</p>
-      </section>
-    );
-  }
+export default function RecommendedEvents({
+  events,
+  joinedEventIds,
+  onJoin
+}: {
+  events: Event[];
+  joinedEventIds: string[];
+  onJoin: (eventId: string) => void;
+}) {
+  const [recommendations, setRecommendations] = useState(events);
+
+  useEffect(() => {
+    setRecommendations(events);
+  }, [events]);
+
+  const handleJoin = async (eventId: string) => {
+    const success = await joinEvent(eventId);
+    if (success) {
+      setRecommendations(prev => prev.filter(e => e.id !== eventId));
+      onJoin(eventId);
+    }
+  };
+
+  if (recommendations.length === 0) return null;
 
   return (
-    <section className="my-6 w-full">
-      <h2 className="text-2xl font-semibold mb-3">Recommended Events</h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {events.map((event) => (
-          <div key={event.id} className="p-4 bg-blue-50 rounded-md shadow flex flex-col">
-            {event.image && (
-              <img
-                src={event.image}
-                alt={event.title}
-                className="w-full h-32 object-cover rounded-md mb-2"
-              />
-            )}
-            <h3 className="font-semibold text-lg">{event.title}</h3>
-            <p className="text-sm text-gray-700">{event.date} {event.time}</p>
-            <p className="text-sm text-gray-700">{event.location}</p>
-            {event.host && <p className="text-sm text-gray-500">Hosted by: {event.host}</p>}
-            <Link href={`/events/${event.id}`}>
-              <button className="mt-auto bg-teal-400 text-white px-4 py-1 rounded hover:bg-teal-500 transition mt-2">
-                View Event
-              </button>
-            </Link>
-          </div>
-        ))}
+    <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 w-[90%] sm:w-[70%] md:w-[60%] lg:w-[50%] z-50">
+      <div className="bg-white border border-gray-300 rounded-2xl shadow-xl p-4">
+        <h2 className="text-xl font-semibold mb-3 text-center">
+          Join Events
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-60 overflow-y-auto">
+          {recommendations.map(event => (
+            <div key={event.id} className="p-3 bg-blue-50 rounded-md shadow-sm">
+              <h3 className="font-semibold">{event.title || event.name}</h3>
+              <p className="text-sm text-gray-600">{event.category}</p>
+              <p className="text-sm text-gray-600">{event.location}</p>
+              {!joinedEventIds.includes(event.id) && (
+                <button
+                  onClick={() => handleJoin(event.id)}
+                  className="mt-2 px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 transition text-sm"
+                >
+                  Join Event
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
       </div>
-    </section>
+    </div>
   );
 }
 
