@@ -12,6 +12,19 @@ const LocationMapPicker = dynamic(
   { ssr: false }
 );
 
+interface EventData {
+  id: string;
+  title: string;
+  date: string;
+  time: string;
+  location: string;
+  description: string;
+  capacity: string;
+  category: string;
+  skillLevel: string;
+  image_url?: string;
+}
+
 export default function CreateEvent() {
   const supabase = createClient();
   const [title, setTitle] = useState("");
