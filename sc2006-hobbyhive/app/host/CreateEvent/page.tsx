@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
 import Header from "../../components/header";
 import Navbar from "../../components/Navbar";
