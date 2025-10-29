@@ -85,7 +85,21 @@ export default function CreateEvent() {
         return;
       }
 
-      
+      setEventToEdit({
+        id: data.id,
+        title: data.title,
+        date: data.date,
+        time: data.time,
+        location: data.location,
+        description: data.description,
+        capacity: data.capacity.toString(),
+        category: data.category,
+        skillLevel: data.skill_level,
+        image_url: data.image_url,
+      });
+    };
+
+    
   const handleLocationSelect = (locationName: string) => {
     setLocation(locationName);
     setErrors((prev) => ({ ...prev, location: false }));
