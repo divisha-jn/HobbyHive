@@ -15,9 +15,11 @@ interface Event {
   location: string;
   image?: string;
   host?: string;
+  hostName?: string;
   status?: string;
   attendees?: string;
   attendeeNames?: string[];
+  capacity?: string;
 }
 
 export default function MyEvents() {
@@ -38,37 +40,38 @@ export default function MyEvents() {
   
   const fetchMyEvents = async () => {
     setLoading(true);
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
-
-    if (userError || !user) {
-      console.error(userError);
-      setLoading(false);
-      return;
-    }
-    const userId = user.id;
-
-    const fallbackImage =
-    "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&h=600&fit=crop";
-
     try {
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError || !user) {
+        console.error(userError);
+        setLoading(false);
+        return;
+      }
+      const userId = user.id;
+
+      const fallbackImage =
+        "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&h=600&fit=crop";
+
+      // Hosted events
       const { data: hostedData, error: hostedError } = await supabase
         .from("events")
         .select("*")
         .eq("host_id", userId)
-        .in("status", ["pending", "approved", "rejected"])
         .order("date", { ascending: true });
 
       if (hostedError) throw hostedError;
-      
+
       const hosted = hostedData?.map((e: any) => ({
         ...e,
         image: e.image_url || fallbackImage,
       })) || [];
-      setHostedEvents(hosted || []);
+      setHostedEvents(hosted);
 
+      // Attending events
       const { data: participantData, error: participantError } = await supabase
         .from("event_participants")
         .select(`
@@ -81,14 +84,19 @@ export default function MyEvents() {
             location,
             image_url,
             host_id,
-            status
+            status,
+            capacity
           )
         `)
-        .eq("user_id", userId);
+        .eq("user_id", userId)
+        .eq("events.status", "approved");
 
       if (participantError) throw participantError;
 
-      const attending = participantData?.map((p: any) => ({
+      // Filter out any null events just in case
+      const validParticipants = participantData?.filter((p: any) => p.events !== null) || [];
+
+      const attending = validParticipants.map((p: any) => ({
         id: p.event_id,
         title: p.events.title,
         date: p.events.date,
@@ -97,15 +105,30 @@ export default function MyEvents() {
         image: p.events.image_url || fallbackImage,
         host: p.events.host_id,
         status: p.events.status,
-      })) || [];
+        capacity: p.events.capacity,
+      }));
 
-      setAttendingEvents(attending);
+      // Fetch host usernames
+      const hostIds = attending.map(e => e.host);
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, username")
+        .in("id", hostIds);
+
+      const attendingWithHostName = attending.map(e => ({
+        ...e,
+        hostName: profiles?.find(p => p.id === e.host)?.username || "Unknown",
+      }));
+
+      setAttendingEvents(attendingWithHostName);
+
     } catch (err) {
       console.error("Failed to fetch events", err);
     } finally {
       setLoading(false);
     }
   };
+
       const fetchRecommended = async () => {
       const {
         data: { user },
@@ -178,7 +201,7 @@ export default function MyEvents() {
                 <p>Date: {event.date}</p>
                 <p>Time: {event.time}</p>
                 <p>
-                  Hosted By: {event.host} |{" "}
+                  Hosted By: {event.hostName} |{" "}
                   <Link href="/groupchat">
                     <button className="border border-teal-400 text-teal-500 px-4 py-1 rounded hover:bg-teal-100 transition">
                       Group Chat
@@ -219,24 +242,21 @@ export default function MyEvents() {
               </div>
 
               <div className="flex flex-col gap-2">
-                <button className="bg-teal-400 text-white px-4 py-1 rounded hover:bg-teal-500">
-                  Edit Details
-                </button>
+                <Link href={`/host/EditCancel?event_id=${event.id}&mode=edit`}>
+                  <button className="bg-teal-400 text-white px-4 py-1 rounded hover:bg-teal-500">
+                    Edit Details
+                  </button>
+                </Link>
                 <Link href="/groupchat">
                   <button className="border border-teal-400 text-teal-500 px-4 py-1 rounded hover:bg-teal-100">
                     Group Chat
                   </button>
                 </Link>
-                <button
-                  className="border border-red-400 text-red-500 px-4 py-1 rounded hover:bg-red-100"
-                  onClick={() => {
-                    const updated = hostedEvents.filter((e) => e.id !== event.id);
-                    setHostedEvents(updated);
-                    localStorage.setItem("hostedEvents", JSON.stringify(updated));
-                  }}
-                >
-                  Cancel Event
-                </button>
+                <Link href={`/host/EditCancel?event_id=${event.id}&mode=cancel`}>
+                  <button className="border border-red-400 text-red-500 px-4 py-1 rounded hover:bg-red-100">
+                    Cancel Event
+                  </button>
+                </Link>
               </div>
             </div>
           ))
@@ -305,7 +325,7 @@ export default function MyEvents() {
             <div className="bg-gray-50 px-4 py-3 border-t border-gray-200">
               <div className="flex justify-between text-sm text-gray-600">
                 <span>Total attendees: {(selectedEvent.attendeeNames || defaultAttendees).length}</span>
-                <span>Capacity: 8</span>
+                <span>Capacity: {selectedEvent.capacity || 0}</span>
               </div>
             </div>
           </div>

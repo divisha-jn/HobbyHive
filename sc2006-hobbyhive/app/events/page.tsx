@@ -51,6 +51,7 @@ const EventsPage: React.FC = () => {
         const { data, error } = await supabase
           .from("events")
           .select("id, title, image_url")
+          .eq("status", "approved") 
           .order("created_at", { ascending: false });
 
         if (error) {
