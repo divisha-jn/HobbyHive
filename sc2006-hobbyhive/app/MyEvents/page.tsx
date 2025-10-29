@@ -21,6 +21,7 @@ interface Event {
   attendees?: string;
   attendeeNames?: string[];
   capacity?: string;
+  disabled?: boolean; // optional disable flag
 }
 
 export default function MyEvents() {
@@ -33,6 +34,7 @@ export default function MyEvents() {
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
   const defaultAttendees = ["You"];
+  const router = useRouter();
 
   useEffect(() => {
     fetchMyEvents();
@@ -66,11 +68,19 @@ export default function MyEvents() {
 
       if (hostedError) throw hostedError;
 
-      const hosted =
-        hostedData?.map((e: any) => ({
-          ...e,
-          image: e.image_url || fallbackImage,
-        })) || [];
+      let hosted = hostedData?.map((e: any) => ({
+        ...e,
+        image: e.image_url || fallbackImage,
+        disabled: false, // default, implement logic if needed
+      })) || [];
+
+      const statusOrder = { approved: 1, pending: 2, cancelled: 3 } as const;
+      hosted.sort((a, b) => {
+        const aStatus = a.status as keyof typeof statusOrder;
+        const bStatus = b.status as keyof typeof statusOrder;
+        return (statusOrder[aStatus] ?? 99) - (statusOrder[bStatus] ?? 99);
+      });
+
       setHostedEvents(hosted);
 
       // Attending events
@@ -109,18 +119,19 @@ export default function MyEvents() {
         capacity: p.events.capacity,
       }));
 
-      const hostIds = attending.map((e) => e.host);
+      const hostIds = attending.map(e => e.host);
       const { data: profiles } = await supabase
         .from("profiles")
         .select("id, username")
         .in("id", hostIds);
 
-      const attendingWithHostName = attending.map((e) => ({
+      const attendingWithHostName = attending.map(e => ({
         ...e,
-        hostName: profiles?.find((p) => p.id === e.host)?.username || "Unknown",
+        hostName: profiles?.find(p => p.id === e.host)?.username || "Unknown",
       }));
 
       setAttendingEvents(attendingWithHostName);
+
     } catch (err) {
       console.error("Failed to fetch events", err);
     } finally {
@@ -143,11 +154,6 @@ export default function MyEvents() {
       console.error("Failed to fetch recommended events", err);
     }
   };
-
-  // Sort hosted events by status
-  const sortedHosted = [...hostedEvents].sort(
-    (a, b) => a.status?.localeCompare(b.status || "") || 0
-  );
 
   return (
     <div className="min-h-screen bg-gradient-to-r from-teal-400 to-cyan-500 relative">
@@ -215,11 +221,11 @@ export default function MyEvents() {
               </div>
             </div>
           ))
-        ) : sortedHosted.length > 0 ? (
-          sortedHosted.map((event) => (
+        ) : hostedEvents.length > 0 ? (
+          hostedEvents.map((event) => (
             <div
               key={event.id}
-              className="bg-white shadow-md rounded-md p-4 w-[700px] flex items-center mb-4"
+              className={`bg-white shadow-md rounded-md p-4 w-[700px] flex items-center mb-4 ${event.disabled ? "opacity-50 pointer-events-none" : ""}`}
             >
               <img
                 src={event.image}
@@ -234,16 +240,11 @@ export default function MyEvents() {
                 <p>
                   Attendees: <b>{event.attendees}</b> |{" "}
                   <button
-                    disabled={event.status === "cancelled"}
                     onClick={() => {
                       setSelectedEvent(event);
                       setShowAttendeeModal(true);
                     }}
-                    className={`underline transition ${
-                      event.status === "cancelled"
-                        ? "text-gray-400 cursor-not-allowed"
-                        : "text-teal-500 hover:text-teal-600"
-                    }`}
+                    className="text-teal-500 underline hover:text-teal-600 transition"
                   >
                     Attendee List
                   </button>
@@ -253,42 +254,54 @@ export default function MyEvents() {
               <div className="flex flex-col gap-2">
                 <Link href={`/host/EditCancel?event_id=${event.id}&mode=edit`}>
                   <button
-                    disabled={event.status === "cancelled"}
-                    className={`px-4 py-1 rounded ${
-                      event.status === "cancelled"
-                        ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                        : "bg-teal-400 text-white hover:bg-teal-500"
-                    }`}
+                    className="bg-teal-400 text-white px-4 py-1 rounded hover:bg-teal-500 disabled:opacity-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={event.status === "cancelled"} // disable if event canceled
                   >
                     Edit Details
                   </button>
                 </Link>
 
+                {/* Old Edit button commented for reference
+                <button
+                  className="bg-teal-400 text-white px-4 py-1 rounded hover:bg-teal-500"
+                  onClick={() => router.push(`/host/CreateEvent?eventId=${event.id}`)}
+                >
+                  Edit Details
+                </button> 
+                */}
+
                 <Link href="/groupchat">
-                  <button
-                    disabled={event.status === "cancelled"}
-                    className={`border px-4 py-1 rounded ${
-                      event.status === "cancelled"
-                        ? "border-gray-300 text-gray-400 cursor-not-allowed"
-                        : "border-teal-400 text-teal-500 hover:bg-teal-100"
-                    }`}
-                  >
+                  <button className="border border-teal-400 text-teal-500 px-4 py-1 rounded hover:bg-teal-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={event.status === "cancelled"}>
                     Group Chat
                   </button>
                 </Link>
 
                 <Link href={`/host/EditCancel?event_id=${event.id}&mode=cancel`}>
                   <button
-                    disabled={event.status === "cancelled"}
-                    className={`border px-4 py-1 rounded ${
-                      event.status === "cancelled"
-                        ? "border-gray-300 text-gray-400 cursor-not-allowed"
-                        : "border-red-400 text-red-500 hover:bg-red-100"
-                    }`}
+                    className="border border-red-400 text-red-500 px-4 py-1 rounded hover:bg-red-100 disabled:opacity-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={event.status === "cancelled"} // disable if event canceled
                   >
                     Cancel Event
                   </button>
                 </Link>
+
+                {/* Old Cancel button commented for reference
+                <button
+                  className="border border-red-400 text-red-500 px-4 py-1 rounded hover:bg-red-100"
+                  onClick={async () => {
+                    try {
+                      await supabase.from("events").delete().eq("id", event.id);
+                      const updated = hostedEvents.filter((e) => e.id !== event.id);
+                      setHostedEvents(updated);
+                    } catch (err) {
+                      console.error("Failed to delete event:", err);
+                    }
+                  }}
+                >
+                  Cancel Event
+                </button>
+                */}
               </div>
             </div>
           ))
@@ -312,9 +325,11 @@ export default function MyEvents() {
         </div>
       </div>
 
+      {/* Attendee List Modal */}
       {showAttendeeModal && selectedEvent && (
         <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[80vh] overflow-hidden">
+            {/* Modal Header */}
             <div className="bg-gradient-to-r from-teal-400 to-cyan-500 p-4 text-white">
               <div className="flex justify-between items-center">
                 <h2 className="text-xl font-bold">Attendee List</h2>
@@ -330,6 +345,7 @@ export default function MyEvents() {
               </p>
             </div>
 
+            {/* Modal Body */}
             <div className="p-4 max-h-96 overflow-y-auto">
               <div className="space-y-3">
                 {(selectedEvent.attendeeNames || defaultAttendees).map((name, i) => (
@@ -350,6 +366,7 @@ export default function MyEvents() {
               </div>
             </div>
 
+            {/* Modal Footer */}
             <div className="bg-gray-50 px-4 py-3 border-t border-gray-200">
               <div className="flex justify-between text-sm text-gray-600">
                 <span>Total attendees: {(selectedEvent.attendeeNames || defaultAttendees).length}</span>
