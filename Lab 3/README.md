@@ -16,5 +16,5 @@ The following image files are uploaded as well for reference in case the images 
 
 - `Use Case Diagram.png`
 - `Class Diagram.png`
-- `Dialog Map.png`
+- `Dialog Map Diagram.png`
 - `System Architecture Diagram.png`
