@@ -2,6 +2,7 @@
 import React, { useEffect, useState, useRef , useMemo} from "react";
 import { createClient } from "../../utils/supabase/client";
 import Navbar from "../components/Navbar";
+import Header from "../components/header"
 
 
 const Page = () => {
@@ -244,20 +245,18 @@ const Page = () => {
   
 
   return (
-    <div className="h-screen flex flex-col p-2">
-      {/* header */}
-      <div className="flex flex-row px-2">
-        <span>
-          <Navbar />
-        </span>
-        <div className="text-5xl flex-1 text-center text-cyan-300">HobbyHive</div>
-        <div className="w-[40px]" />
+    <div className="h-screen flex flex-col p-2 bg-white">
+      {/* header */}  
+      <div className="absolute top-2 left-4 z-50">
+        <Navbar />
       </div>
+      <Header/>
 
       {/* layout */}
-      <div className="Chat p-0 gap-4 flex flex-row flex-1 overflow-hidden">
+      <div className="Chat p-0 gap-4 flex flex-row flex-1 overflow-hidden mt-2">
         {/* sidebar groups */}
-        <ul className="list bg-base-100 rounded-box shadow-md p-5 w-1/4 overflow-y-auto">
+        <ul className="list rounded-box shadow-md p-5 w-1/4 overflow-y-auto border-2 bg-teal-500
+">
           {groupChats.length > 0? (
             groupChats.map((chat => (
               <li key = {chat.chat_id} className="flex items-center gap-3 py-6 text-white hover:bg-accent rounded-xl" 
@@ -269,7 +268,7 @@ const Page = () => {
                     className="w-full h-full object-cover rounded-2xl"
                     />
                   </div>
-                <div className="size-10 width-full break-words w-[150px]">
+                <div className="size-10 text-xl width-full break-words   w-[150px]">
                   {chat.event_title}
                 </div>
               </li>
@@ -279,12 +278,12 @@ const Page = () => {
         </ul>
 
         {/* chat room */}
-        <div className="Chatroom border-1 border-base-400 p-2 flex flex-col flex-1 rounded-2xl h-full">
+        <div className="Chatroom border-2 border-base-400 p-2 flex flex-col flex-1 rounded-2xl h-full bg-white">
           <div className="flex justify-end mb-2">
             <div className="flex flex-col items-end mb-2 text-white">
               <button
                 onClick={() => setShowMembers(!showMembers)}
-                className="btn btn-sm btn-outline btn-accent bg-accent text-black"
+                className="btn btn-sm btn-outline btn-accent bg-accent text-black rounded-xl"
               >
                 👥 {showMembers ? "Hide Members" : "View Members"}
               </button>
@@ -323,7 +322,7 @@ const Page = () => {
               )}
             </div>
           </div>
-          <div className="flex-1 p-2 space-y-4 rounded-lg overflow-y-auto">
+          <div className="flex-1 p-2 space-y-4 rounded-lg overflow-y-auto text-xl">
             {messages.length > 0 ? (
               messages.map((msg, idx) => (
                 <div key={idx}>
@@ -340,7 +339,7 @@ const Page = () => {
           </div>
 
           {/* input bar */}
-          <div className="flex p-2 gap-4 items-end w-full text-white">
+          <div className="flex p-2 gap-4 items-end w-full text-black">
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
