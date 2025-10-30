@@ -8,6 +8,7 @@ import dynamic from "next/dynamic";
 import { useSearchParams, useRouter } from "next/navigation";
 import { getLocationConfigForCategory } from "@/app/config/categoryLocationMapping";
 import LocationAutocompleteInput from "../../components/LocationAutocompleteInput";
+import { findNearestMRT } from "@/app/utils/calculateNearestMRT";
 
 const LocationMapPicker = dynamic(
   () => import("../../components/LocationMapPicker"),
@@ -20,8 +21,10 @@ interface EventData {
   date: string;
   time: string;
   location: string;
-  latitude?: number;   // NEW
-  longitude?: number;  // NEW
+  latitude?: number;
+  longitude?: number;
+  nearest_mrt_station?: string;
+  nearest_mrt_distance?: number;
   description: string;
   capacity: string;
   category: string;
@@ -41,8 +44,10 @@ export default function CreateEvent() {
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [location, setLocation] = useState("");
-  const [latitude, setLatitude] = useState<number | null>(null);  // NEW
-  const [longitude, setLongitude] = useState<number | null>(null); // NEW
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
+  const [nearestMRT, setNearestMRT] = useState<string | null>(null);
+  const [nearestMRTDistance, setNearestMRTDistance] = useState<number | null>(null);
   const [description, setDescription] = useState("");
   const [capacity, setCapacity] = useState("");
   const [category, setCategory] = useState("");
@@ -97,8 +102,10 @@ export default function CreateEvent() {
         date: data.date,
         time: data.time,
         location: data.location,
-        latitude: data.latitude,    // NEW
-        longitude: data.longitude,  // NEW
+        latitude: data.latitude,
+        longitude: data.longitude,
+        nearest_mrt_station: data.nearest_mrt_station,
+        nearest_mrt_distance: data.nearest_mrt_distance,
         description: data.description,
         capacity: data.capacity.toString(),
         category: data.category,
@@ -121,18 +128,25 @@ export default function CreateEvent() {
       setCapacity(eventToEdit.capacity);
       setCategory(eventToEdit.category);
       setSkillLevel(eventToEdit.skillLevel);
-      // Load coordinates - NEW
       if (eventToEdit.latitude) setLatitude(eventToEdit.latitude);
       if (eventToEdit.longitude) setLongitude(eventToEdit.longitude);
+      if (eventToEdit.nearest_mrt_station) setNearestMRT(eventToEdit.nearest_mrt_station);
+      if (eventToEdit.nearest_mrt_distance) setNearestMRTDistance(eventToEdit.nearest_mrt_distance);
     }
   }, [eventToEdit]);
 
-  // UPDATED - now accepts coordinates
-  const handleLocationSelect = (locationName: string, lat?: number, lng?: number) => {
+  const handleLocationSelect = async (locationName: string, lat?: number, lng?: number) => {
     setLocation(locationName);
     if (lat !== undefined && lng !== undefined) {
       setLatitude(lat);
       setLongitude(lng);
+      
+      // Calculate nearest MRT
+      const mrtInfo = await findNearestMRT(lat, lng);
+      if (mrtInfo) {
+        setNearestMRT(mrtInfo.name);
+        setNearestMRTDistance(mrtInfo.distance);
+      }
     }
     setErrors((prev) => ({ ...prev, location: false }));
   };
@@ -193,7 +207,7 @@ export default function CreateEvent() {
       }
 
       if (eventToEdit) {
-        // Update existing event - ADDED latitude/longitude
+        // Update existing event
         const { error } = await supabase
           .from("events")
           .update({
@@ -201,8 +215,10 @@ export default function CreateEvent() {
             date,
             time,
             location,
-            latitude,     // NEW
-            longitude,    // NEW
+            latitude,
+            longitude,
+            nearest_mrt_station: nearestMRT,
+            nearest_mrt_distance: nearestMRTDistance,
             description,
             capacity: parseInt(capacity),
             category,
@@ -218,15 +234,17 @@ export default function CreateEvent() {
           setMessage("Event updated successfully!");
         }
       } else {
-        // Create new event - ADDED latitude/longitude
+        // Create new event
         const { error } = await supabase.from("events").insert([
           {
             title,
             date,
             time,
             location,
-            latitude,     // NEW
-            longitude,    // NEW
+            latitude,
+            longitude,
+            nearest_mrt_station: nearestMRT,
+            nearest_mrt_distance: nearestMRTDistance,
             description,
             capacity: parseInt(capacity),
             category,
@@ -291,8 +309,10 @@ export default function CreateEvent() {
                   setDate("");
                   setTime("");
                   setLocation("");
-                  setLatitude(null);   // NEW
-                  setLongitude(null);  // NEW
+                  setLatitude(null);
+                  setLongitude(null);
+                  setNearestMRT(null);
+                  setNearestMRTDistance(null);
                   setDescription("");
                   setCapacity("");
                   setCategory("");
@@ -450,15 +470,30 @@ export default function CreateEvent() {
                     <LocationAutocompleteInput
                       location={location}
                       setLocation={setLocation}
-                      onCoordinatesSelect={(lat, lng) => {
+                      onCoordinatesSelect={async (lat, lng) => {
                         setLatitude(lat);
                         setLongitude(lng);
+                        // Calculate MRT for manual entry too
+                        const mrtInfo = await findNearestMRT(lat, lng);
+                        if (mrtInfo) {
+                          setNearestMRT(mrtInfo.name);
+                          setNearestMRTDistance(mrtInfo.distance);
+                        }
                       }}
                       disabled={!category}
                       className={getInputClassName("location")}
                     />
                   )}
                 </div>
+
+                {/* MRT INFO PREVIEW */}
+                {nearestMRT && nearestMRTDistance && (
+                  <div className="p-3 bg-blue-50 border border-blue-200 rounded">
+                    <p className="text-sm text-blue-800">
+                      🚇 <strong>Nearest MRT:</strong> {nearestMRT} ({nearestMRTDistance} km away)
+                    </p>
+                  </div>
+                )}
 
                 {/* DESCRIPTION */}
                 <div>

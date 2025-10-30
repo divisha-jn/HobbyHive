@@ -1,14 +1,14 @@
-
-
 "use client";
 import React, { useState, useEffect } from 'react';
 import { MapPin, Calendar, Clock, Users, Heart, ChevronLeft, TrendingUp } from 'lucide-react';
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 
+
 interface EventListingProps {
   eventId: string;
 }
+
 
 interface EventData {
   id: string;
@@ -23,7 +23,10 @@ interface EventData {
   capacity: number;
   host_id: string;
   current_attendees: number;
+  nearest_mrt_station?: string;     // NEW
+  nearest_mrt_distance?: number;    // NEW
 }
+
 
 export default function EventListing({ eventId }: EventListingProps) {
   const router = useRouter();
@@ -49,10 +52,12 @@ export default function EventListing({ eventId }: EventListingProps) {
       `)
       .eq("event_id", eventId);
 
+
     if (error) {
       console.error("Error fetching attendees:", error);
       return;
     }
+
 
     const attendeeList = participantData?.map((p: any, index: number) => ({
       id: index,
@@ -60,11 +65,13 @@ export default function EventListing({ eventId }: EventListingProps) {
       color: ['bg-blue-400', 'bg-purple-400', 'bg-pink-400', 'bg-green-400', 'bg-yellow-400'][index % 5],
     })) || [];
 
+
     setAttendees(attendeeList);
   } catch (err) {
     console.error("Error loading attendees:", err);
   }
 };
+
 
   useEffect(() => {
     const fetchEvent = async () => {
@@ -76,10 +83,12 @@ export default function EventListing({ eventId }: EventListingProps) {
           .eq("id", eventId)
           .single();
 
+
         if (eventError) {
           console.error("Error fetching event:", eventError);
         } else if (eventData) {
           setEvent(eventData);
+
 
           // Fetch host name
           const { data: userData } = await supabase
@@ -88,11 +97,14 @@ export default function EventListing({ eventId }: EventListingProps) {
             .eq("id", eventData.host_id)
             .single();
 
+
           if (userData) {
             setHostName(userData.username || "Host");
           }
 
+
           await fetchAttendees();
+
 
           // Check if user is already attending
           const { data: { user } } = await supabase.auth.getUser();
@@ -104,6 +116,7 @@ export default function EventListing({ eventId }: EventListingProps) {
               .eq("user_id", user.id)
               .single();
 
+
             setIsAttending(!!participantData);
           }
         }
@@ -114,14 +127,18 @@ export default function EventListing({ eventId }: EventListingProps) {
       }
     };
 
+
     fetchEvent();
   }, [eventId, supabase]);
+
 
   const handleJoinEvent = async () => {
   if (!event) return;
 
+
   setIsJoining(true);
   setMessage("");
+
 
   try {
     const { data, error: authError } = await supabase.auth.getUser();
@@ -132,11 +149,13 @@ export default function EventListing({ eventId }: EventListingProps) {
     }
     const user = data.user;
 
+
     // Check current participant count
     const { count } = await supabase
       .from("event_participants")
       .select("*", { count: "exact", head: true })
       .eq("event_id", eventId);
+
 
     if (count !== null && count >= event.capacity) {
       setMessage("Event is Full");
@@ -144,10 +163,12 @@ export default function EventListing({ eventId }: EventListingProps) {
       return;
     }
 
+
     // Add user to event participants
     const { error: joinError } = await supabase
       .from("event_participants")
       .insert([{ user_id: user.id, event_id: eventId }]);
+
 
     if (joinError) {
       console.error("Error joining event:", joinError);
@@ -166,6 +187,7 @@ export default function EventListing({ eventId }: EventListingProps) {
   }
 };  
 
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-cyan-50 to-white flex items-center justify-center">
@@ -174,6 +196,7 @@ export default function EventListing({ eventId }: EventListingProps) {
     );
   }
 
+
   if (!event) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-cyan-50 to-white flex items-center justify-center">
@@ -181,6 +204,7 @@ export default function EventListing({ eventId }: EventListingProps) {
       </div>
     );
   }
+
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-cyan-50 to-white pb-24">
@@ -195,6 +219,7 @@ export default function EventListing({ eventId }: EventListingProps) {
         <div className="w-6"></div>
       </div>
 
+
       {/* Event Image */}
       <div className="relative h-64 bg-gradient-to-br from-green-300 to-green-500 flex items-center justify-center overflow-hidden">
         <img
@@ -203,6 +228,7 @@ export default function EventListing({ eventId }: EventListingProps) {
           className="w-full h-full object-cover"
         />
       </div>
+
 
       <div className="px-4 py-6">
         {/* Title Section */}
@@ -219,6 +245,7 @@ export default function EventListing({ eventId }: EventListingProps) {
           </div>
         </div>
 
+
         {/* Host Info */}
         <div className="bg-cyan-50 rounded-xl p-4 mb-6 border border-cyan-200">
           <div className="flex items-center gap-3">
@@ -231,6 +258,7 @@ export default function EventListing({ eventId }: EventListingProps) {
             </div>
           </div>
         </div>
+
 
         {/* Event Details */}
         <div className="space-y-4 mb-6">
@@ -255,6 +283,20 @@ export default function EventListing({ eventId }: EventListingProps) {
               <p className="font-semibold">{event.location}</p>
             </div>
           </div>
+
+          {/* MRT Station - NEW */}
+          {event.nearest_mrt_station && (
+            <div className="flex items-center gap-3 text-gray-700">
+              <div className="w-5 h-5 text-cyan-500 flex-shrink-0 flex items-center justify-center text-lg">
+                🚇
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Nearest MRT</p>
+                <p className="font-semibold">{event.nearest_mrt_station} ({event.nearest_mrt_distance} km away)</p>
+              </div>
+            </div>
+          )}
+
           <div className="flex items-center gap-3 text-gray-700">
             <TrendingUp className="w-5 h-5 text-cyan-500 flex-shrink-0" />
             <div>
@@ -263,6 +305,7 @@ export default function EventListing({ eventId }: EventListingProps) {
             </div>
           </div>
         </div>
+
 
         {/* Attendees */}
         <div className="bg-cyan-50 rounded-xl p-4 mb-6 border border-cyan-200">
@@ -285,6 +328,7 @@ export default function EventListing({ eventId }: EventListingProps) {
           </div>
         </div>
 
+
         {/* Description */}
         <div className="mb-6">
           <h3 className="font-semibold text-gray-800 mb-3">About This Event</h3>
@@ -296,10 +340,12 @@ export default function EventListing({ eventId }: EventListingProps) {
           </div>
         </div>
 
+
         {/* Tags */}
         <div className="flex flex-wrap gap-2 mb-8">
           <span className="px-4 py-2 bg-cyan-100 text-cyan-700 text-sm font-medium rounded-full">{event.category}</span>
         </div>
+
 
         {/* Status Message */}
         {message && (
@@ -323,6 +369,7 @@ export default function EventListing({ eventId }: EventListingProps) {
           </div>
         )}
 
+
         {/* Attendance Status */}
         {isAttending && !message && (
           <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-8 text-center">
@@ -330,6 +377,7 @@ export default function EventListing({ eventId }: EventListingProps) {
           </div>
         )}
       </div>
+
 
       {/* Bottom Action Buttons */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-cyan-100 p-4">
