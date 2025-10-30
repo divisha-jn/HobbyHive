@@ -11,14 +11,8 @@ import {
   updatePassword,
   uploadProfilePicture,
 } from "@/utils/supabase/account";
-import FollowedUsers from "../participant/FollowedUsers/FollowedUsers";
+import { getFollowedUsers } from "@/utils/supabase/participantService";
 import { createClient } from "@/utils/supabase/client";
-
-interface FollowingUser {
-  id: number;
-  name: string;
-  avatar: string;
-}
 
 interface GroupChat {
   id: number;
@@ -39,12 +33,9 @@ const ProfilePage: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [eventsParticipatedCount, setEventsParticipatedCount] = useState(0);
   const [eventsHostedCount, setEventsHostedCount] = useState(0);
+  const [followedUsers, setFollowedUsers] = useState<any[]>([]);
 
   const router = useRouter();
-
-  const following: FollowingUser[] = [
-    { id: 1, name: "Alan Wong", avatar: "https://i.pravatar.cc/150?img=12" },
-  ];
 
   const groupChats: GroupChat[] = [
     { id: 1, name: "Alan's Badminton ...", avatar: "https://i.pravatar.cc/150?img=13" },
@@ -83,8 +74,7 @@ const ProfilePage: React.FC = () => {
         const { data: participantData, error: participantError } = await supabase
           .from("event_participants")
           .select("event_id", { count: "exact" })
-          .eq("user_id", user.id)
-          .eq("events.status", "approved"); // you may need a proper join depending on Supabase setup
+          .eq("user_id", user.id);
         if (participantError) throw participantError;
         setEventsParticipatedCount(participantData?.length ?? 0);
       } catch (err) {
@@ -95,17 +85,17 @@ const ProfilePage: React.FC = () => {
     loadCounts();
   }, [user]);
 
+  // Load followed users
+  useEffect(() => {
+    const loadFollowed = async () => {
+      const users = await getFollowedUsers();
+      setFollowedUsers(users);
+    };
+    loadFollowed();
+  }, []);
+
   const handleFindEvents = () => router.push("/MyEvents");
   const handleCreateEvent = () => router.push("/host/CreateEvent");
-  const handleParticipantDashboard = () => router.push("/participant");
-
-  const handleFollowingClick = (user: FollowingUser) => {
-    console.log("Clicked on following user:", user.name);
-  };
-
-  const handleGroupChatClick = (group: GroupChat) => {
-    console.log("Clicked on group chat:", group.name);
-  };
 
   const handleUpdate = async () => {
     if (!user) return;
@@ -236,7 +226,7 @@ const ProfilePage: React.FC = () => {
                 {isEditing && (
                   <button
                     onClick={handleCancelEdit}
-                    className="border border-red-400 px-4 py-1 rounded hover:bg-red-100 rounded-lg transition shadow-md hover:opacity-80 text-sm mt-2"
+                    className="border border-red-400 px-4 py-1 rounded hover:bg-red-100 transition shadow-md hover:opacity-80 text-sm mt-2"
                     disabled={loading}
                   >
                     ❌ Cancel
@@ -249,19 +239,11 @@ const ProfilePage: React.FC = () => {
                 <div className="flex gap-20 mb-6">
                   <div className="text-center">
                     <div className="text-5xl font-bold">{eventsParticipatedCount}</div>
-                    <div className="text-sm text-gray-600">
-                      Events
-                      <br />
-                      Participated
-                    </div>
+                    <div className="text-sm text-gray-600">Events<br />Participated</div>
                   </div>
                   <div className="text-center">
                     <div className="text-5xl font-bold">{eventsHostedCount}</div>
-                    <div className="text-sm text-gray-600">
-                      Events
-                      <br />
-                      Hosted
-                    </div>
+                    <div className="text-sm text-gray-600">Events<br />Hosted</div>
                   </div>
                 </div>
 
@@ -279,13 +261,6 @@ const ProfilePage: React.FC = () => {
                     style={{ backgroundColor: "#1DDACA" }}
                   >
                     Create Event
-                  </button>
-                  <button
-                    onClick={handleParticipantDashboard}
-                    className="text-white px-4 py-1 rounded-lg shadow-md hover:opacity-80 transition-colors"
-                    style={{ backgroundColor: "#1DDACA" }}
-                  >
-                    Participant Dashboard
                   </button>
                 </div>
 
@@ -352,17 +327,40 @@ const ProfilePage: React.FC = () => {
 
           {/* Right Column */}
           <div className="space-y-6">
-            <div className="space-y-2">
-              <FollowedUsers />
+            {/* Followed Users Section */}
+            <div className="bg-white rounded-lg shadow-md p-4">
+              <h2 className="text-xl font-bold mb-4">Following</h2>
+
+              {followedUsers.length === 0 ? (
+                <p className="text-gray-500">You’re not following anyone yet.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {followedUsers.map((user) => (
+                    <li
+                      key={user.id}
+                      className="flex items-center gap-3 hover:bg-gray-50 p-2 rounded cursor-pointer transition"
+                      onClick={() => console.log("Clicked:", user.username)}
+                    >
+                      <img
+                        src={user.profile_picture || "https://i.pravatar.cc/50"}
+                        alt={user.username}
+                        className="w-10 h-10 rounded-full object-cover"
+                      />
+                      <span className="font-medium">{user.username}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
 
+            {/* Group Chats Section */}
             <div className="bg-white rounded-lg shadow-md p-4">
               <h2 className="text-xl font-bold mb-4">Group Chats</h2>
               <div className="space-y-2">
                 {groupChats.map((group) => (
                   <div
                     key={group.id}
-                    onClick={() => handleGroupChatClick(group)}
+                    onClick={() => console.log("Clicked on group chat:", group.name)}
                     className="flex items-center justify-between p-3 hover:bg-gray-100 rounded-lg cursor-pointer transition"
                   >
                     <div className="flex items-center gap-3">
