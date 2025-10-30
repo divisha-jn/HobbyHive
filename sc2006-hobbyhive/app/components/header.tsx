@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import { getCurrentUser, fetchProfile, logout } from "@/utils/supabase/account";
-
+import Link from "next/link";
 interface UserState {
   email: string | null;
   username?: string | null;
@@ -70,7 +70,9 @@ const Header = () => {
               />
             )}
             <span className="text-gray-700 font-medium">
+            <Link href="/profile">
               {user.username ?? user.email}
+            </Link>
             </span>
             <button
               onClick={handleLogout}
