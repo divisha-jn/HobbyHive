@@ -3,9 +3,9 @@
 ## Deliverables
 - Complete Use Case model
 - Design Model
-  • Class diagram
-  • Sequence diagrams
-  • Dialog map
+  - Class diagram
+  - Sequence diagrams
+  - Dialog map
 - System architecture
 - Application skeleton
 
