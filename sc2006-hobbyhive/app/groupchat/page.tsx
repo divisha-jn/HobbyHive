@@ -264,7 +264,7 @@ const Page = () => {
               onClick ={() => setSelectedChatId(chat.chat_id)}>
                  <div className="w-10 h-10 flex items-center justify-center bg-white rounded-full font-bold">
                     <img 
-                    src={chat.img_url}
+                    src={chat.image_url}
                     alt={chat.event_title}
                     className="w-full h-full object-cover rounded-2xl"
                     />
