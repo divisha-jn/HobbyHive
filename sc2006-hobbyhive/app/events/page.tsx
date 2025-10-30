@@ -42,9 +42,10 @@ const EventsPage: React.FC = () => {
   const supabase = createClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [events, setEvents] = useState<Event[]>([]);
+  const [allEvents, setAllEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
 
-    // Fetch events from Supabase
+  // Fetch events from Supabase
   useEffect(() => {
     const fetchEvents = async () => {
       try {
@@ -57,6 +58,7 @@ const EventsPage: React.FC = () => {
         if (error) {
           console.error("Error fetching events:", error);
         } else {
+          setAllEvents(data || []);
           setEvents(data || []);
         }
       } catch (err) {
@@ -69,23 +71,32 @@ const EventsPage: React.FC = () => {
     fetchEvents();
   }, [supabase]);
 
-  const handleCardClick = (Event: Event) => {
-    console.log("Clicked Event:", Event.title);
-    router.push(`/events/${Event.id}`);
+  const handleCardClick = (event: Event) => {
+    console.log("Clicked Event:", event.title);
+    router.push(`/events/${event.id}`);
   };
 
-  const handleSearch = () => {
-    console.log("Searching for:", searchQuery);
+  const handleSearch = (query: string) => {
+    const filtered = allEvents.filter((event) =>
+      event.title.toLowerCase().includes(query.toLowerCase())
+    );
+    setEvents(filtered);
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const query = e.target.value;
+    setSearchQuery(query);
+    handleSearch(query);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
-      handleSearch();
+      handleSearch(searchQuery);
     }
   };
 
   return (
-    <div className="bg-gradient-to-r from-teal-400 to-cyan-500">
+    <div className="h-screen bg-gradient-to-r from-teal-400 to-cyan-500">
       {/* Navbar */}
       <div className="absolute top-2 left-4 z-50">
         <Navbar />
@@ -103,12 +114,12 @@ const EventsPage: React.FC = () => {
                 type="text"
                 placeholder="Search"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={handleInputChange}
                 onKeyPress={handleKeyPress}
                 className="w-full px-4 py-2 bg-gray-100 rounded-full focus:outline-none focus:ring-2 focus:ring-cyan-400 transition"
               />
               <button
-                onClick={handleSearch}
+                onClick={() => handleSearch(searchQuery)}
                 className="absolute right-3 top-1/2 -translate-y-1/2"
               >
                 {/* Search Icon */}
@@ -138,12 +149,12 @@ const EventsPage: React.FC = () => {
           <p className="text-center text-white text-lg">No events found</p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {events.map((Event) => (
+          {events.map((event) => (
             <EventCard
-              key={Event.id}
-              image={Event.image_url}
-              title={Event.title}
-              onClick={() => handleCardClick(Event)}
+              key={event.id}
+              image={event.image_url}
+              title={event.title}
+              onClick={() => handleCardClick(event)}
             />
           ))}
         </div>
