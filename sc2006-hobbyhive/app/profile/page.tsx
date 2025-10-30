@@ -164,7 +164,7 @@ const ProfilePage: React.FC = () => {
   if (!user) return <p className="p-6 text-center">Loading...</p>;
 
   return (
-    <div className="bg-gradient-to-r from-teal-400 to-cyan-500">
+    <div className="min-h-screen bg-gradient-to-r from-teal-400 to-cyan-500">
       {/* Navbar wrapper fixes TS error */}
       <div className="absolute top-2 left-4 z-50">
         <Navbar />
