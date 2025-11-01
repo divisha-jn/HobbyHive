@@ -4,9 +4,8 @@ import Header from "../components/header";
 import Navbar from "../components/Navbar";
 import { createClient } from "@/utils/supabase/client";
 import Link from "next/link";
-import { getRecommendedEvents } from "@/utils/supabase/participantService";
-import RecommendedEvents from "../participant/RecommendedEvents";
 import { useRouter } from "next/navigation";
+import { Flag } from "lucide-react";
 
 interface Event {
   id: string;
@@ -21,7 +20,8 @@ interface Event {
   attendees?: string;
   attendeeNames?: string[];
   capacity?: string;
-  disabled?: boolean; // optional disable flag
+  disabled?: boolean;
+  isFlagged?: boolean;
 }
 
 export default function MyEvents() {
@@ -30,15 +30,21 @@ export default function MyEvents() {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [hostedEvents, setHostedEvents] = useState<Event[]>([]);
   const [attendingEvents, setAttendingEvents] = useState<Event[]>([]);
-  const [recommendedEvents, setRecommendedEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  
+  // Flag modal states
+  const [showFlagModal, setShowFlagModal] = useState(false);
+  const [flagReason, setFlagReason] = useState("");
+  const [isFlagging, setIsFlagging] = useState(false);
+  const [eventToFlag, setEventToFlag] = useState<Event | null>(null);
+  
   const supabase = createClient();
   const defaultAttendees = ["You"];
   const router = useRouter();
 
   useEffect(() => {
     fetchMyEvents();
-    fetchRecommended();
   }, []);
 
   const fetchMyEvents = async () => {
@@ -55,6 +61,7 @@ export default function MyEvents() {
         return;
       }
       const userId = user.id;
+      setCurrentUserId(userId);
 
       const fallbackImage =
         "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&h=600&fit=crop";
@@ -71,7 +78,7 @@ export default function MyEvents() {
       const hosted = hostedData?.map((e: any) => ({
         ...e,
         image: e.image_url || fallbackImage,
-        disabled: false, // default, implement logic if needed
+        disabled: false,
       })) || [];
 
       const statusOrder = { approved: 1, pending: 2, cancelled: 3 } as const;
@@ -125,9 +132,20 @@ export default function MyEvents() {
         .select("id, username")
         .in("id", hostIds);
 
+      // Check which events are already flagged by this user
+      const eventIds = attending.map(e => e.id);
+      const { data: flagData } = await supabase
+        .from("event_flags")
+        .select("event_id")
+        .eq("user_id", userId)
+        .in("event_id", eventIds);
+
+      const flaggedEventIds = new Set(flagData?.map(f => f.event_id) || []);
+
       const attendingWithHostName = attending.map(e => ({
         ...e,
         hostName: profiles?.find(p => p.id === e.host)?.username || "Unknown",
+        isFlagged: flaggedEventIds.has(e.id),
       }));
 
       setAttendingEvents(attendingWithHostName);
@@ -139,21 +157,51 @@ export default function MyEvents() {
     }
   };
 
-  const fetchRecommended = async () => {
-    const {
-      data: { user },
-      error,
-    } = await supabase.auth.getUser();
+ const handleFlagEvent = async () => {
+  if (!flagReason.trim()) {
+    alert("Please provide a reason for flagging this event.");
+    return;
+  }
 
-    if (error || !user) return;
+  if (!eventToFlag || !currentUserId) return;
 
-    try {
-      const recEvents = await getRecommendedEvents(user.id);
-      setRecommendedEvents(recEvents || []);
-    } catch (err) {
-      console.error("Failed to fetch recommended events", err);
+  setIsFlagging(true);
+
+  try {
+    const { error } = await supabase
+      .from("event_flags")
+      .insert([{
+        event_id: eventToFlag.id,
+        user_id: currentUserId,
+        reason: flagReason,
+      }]);
+
+    if (error) {
+      console.error("Error flagging event:", error);
+      
+      // Check for duplicate flag error
+      if (error.message.includes("duplicate key") || error.message.includes("unique constraint")) {
+        alert("You have already flagged this event.");
+      } else {
+        alert("Error flagging event: " + error.message);
+      }
+    } else {
+      // Update the local state to reflect flagged status
+      setAttendingEvents(prev => 
+        prev.map(e => e.id === eventToFlag.id ? { ...e, isFlagged: true } : e)
+      );
+      setShowFlagModal(false);
+      setFlagReason("");
+      setEventToFlag(null);
+      alert("Event flagged successfully. Thank you for your report.");
     }
-  };
+  } catch (err) {
+    console.error("Unexpected error:", err);
+    alert("Error flagging event");
+  } finally {
+    setIsFlagging(false);
+  }
+};
 
   return (
     <div className="min-h-screen bg-gradient-to-r from-teal-400 to-cyan-500 relative">
@@ -188,13 +236,6 @@ export default function MyEvents() {
       </div>
 
       <div className="flex justify-center mt-6 flex-col items-center">
-        {activeTab === "attending" && recommendedEvents.length > 0 && (
-          <div className="bg-white shadow-md rounded-md p-4 w-[700px] mb-6">
-            <h2 className="text-xl font-bold mb-4">Recommended Events</h2>
-            <RecommendedEvents events={recommendedEvents} />
-          </div>
-        )}
-
         {activeTab === "attending" ? (
           attendingEvents.map((event, index) => (
             <div
@@ -219,6 +260,21 @@ export default function MyEvents() {
                   </Link>
                 </p>
               </div>
+
+              {/* Flag Button - Only show for events NOT hosted by current user */}
+              {event.host !== currentUserId && (
+                <button
+                  onClick={() => {
+                    setEventToFlag(event);
+                    setShowFlagModal(true);
+                  }}
+                  disabled={event.isFlagged}
+                  className="ml-4 disabled:opacity-50"
+                  title={event.isFlagged ? "Already flagged" : "Flag this event"}
+                >
+                  <Flag className={`w-6 h-6 ${event.isFlagged ? 'text-red-500 fill-red-500' : 'text-gray-600'}`} />
+                </button>
+              )}
             </div>
           ))
         ) : hostedEvents.length > 0 ? (
@@ -254,54 +310,30 @@ export default function MyEvents() {
               <div className="flex flex-col gap-2">
                 <Link href={`/host/EditCancel?event_id=${event.id}&mode=edit`}>
                   <button
-                    className="bg-teal-400 text-white px-4 py-1 rounded hover:bg-teal-500 disabled:opacity-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled={event.status === "cancelled"} // disable if event canceled
+                    className="bg-teal-400 text-white px-4 py-1 rounded hover:bg-teal-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={event.status === "cancelled"}
                   >
                     Edit Details
                   </button>
                 </Link>
 
-                {/* Old Edit button commented for reference
-                <button
-                  className="bg-teal-400 text-white px-4 py-1 rounded hover:bg-teal-500"
-                  onClick={() => router.push(`/host/CreateEvent?eventId=${event.id}`)}
-                >
-                  Edit Details
-                </button> 
-                */}
-
                 <Link href="/groupchat">
-                  <button className="border border-teal-400 text-teal-500 px-4 py-1 rounded hover:bg-teal-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled={event.status === "cancelled"}>
+                  <button 
+                    className="border border-teal-400 text-teal-500 px-4 py-1 rounded hover:bg-teal-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={event.status === "cancelled"}
+                  >
                     Group Chat
                   </button>
                 </Link>
 
                 <Link href={`/host/EditCancel?event_id=${event.id}&mode=cancel`}>
                   <button
-                    className="border border-red-400 text-red-500 px-4 py-1 rounded hover:bg-red-100 disabled:opacity-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled={event.status === "cancelled"} // disable if event canceled
+                    className="border border-red-400 text-red-500 px-4 py-1 rounded hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={event.status === "cancelled"}
                   >
                     Cancel Event
                   </button>
                 </Link>
-
-                {/* Old Cancel button commented for reference
-                <button
-                  className="border border-red-400 text-red-500 px-4 py-1 rounded hover:bg-red-100"
-                  onClick={async () => {
-                    try {
-                      await supabase.from("events").delete().eq("id", event.id);
-                      const updated = hostedEvents.filter((e) => e.id !== event.id);
-                      setHostedEvents(updated);
-                    } catch (err) {
-                      console.error("Failed to delete event:", err);
-                    }
-                  }}
-                >
-                  Cancel Event
-                </button>
-                */}
               </div>
             </div>
           ))
@@ -325,11 +357,53 @@ export default function MyEvents() {
         </div>
       </div>
 
+      {/* Flag Modal */}
+      {showFlagModal && eventToFlag && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md">
+            <h3 className="text-xl font-bold text-gray-800 mb-4">Flag Event</h3>
+            <p className="text-sm text-gray-600 mb-2">
+              <strong>Event:</strong> {eventToFlag.title}
+            </p>
+            <p className="text-sm text-gray-600 mb-4">
+              Please provide a reason for flagging this event. This will be reviewed by administrators.
+            </p>
+            
+            <textarea
+              value={flagReason}
+              onChange={(e) => setFlagReason(e.target.value)}
+              placeholder="Describe the issue (e.g., inappropriate content, spam, misleading information)..."
+              className="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-2 focus:ring-teal-500"
+              rows={4}
+            />
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowFlagModal(false);
+                  setFlagReason("");
+                  setEventToFlag(null);
+                }}
+                className="flex-1 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleFlagEvent}
+                disabled={isFlagging}
+                className="flex-1 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition disabled:opacity-50"
+              >
+                {isFlagging ? "Flagging..." : "Submit Flag"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Attendee List Modal */}
       {showAttendeeModal && selectedEvent && (
         <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[80vh] overflow-hidden">
-            {/* Modal Header */}
             <div className="bg-gradient-to-r from-teal-400 to-cyan-500 p-4 text-white">
               <div className="flex justify-between items-center">
                 <h2 className="text-xl font-bold">Attendee List</h2>
@@ -345,7 +419,6 @@ export default function MyEvents() {
               </p>
             </div>
 
-            {/* Modal Body */}
             <div className="p-4 max-h-96 overflow-y-auto">
               <div className="space-y-3">
                 {(selectedEvent.attendeeNames || defaultAttendees).map((name, i) => (
@@ -366,7 +439,6 @@ export default function MyEvents() {
               </div>
             </div>
 
-            {/* Modal Footer */}
             <div className="bg-gray-50 px-4 py-3 border-t border-gray-200">
               <div className="flex justify-between text-sm text-gray-600">
                 <span>Total attendees: {(selectedEvent.attendeeNames || defaultAttendees).length}</span>
