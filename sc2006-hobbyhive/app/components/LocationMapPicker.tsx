@@ -31,7 +31,7 @@ interface Location {
 }
 
 interface LocationMapPickerProps {
-  onLocationSelect: (locationName: string, lat?: number, lng?: number) => void; // UPDATED
+  onLocationSelect: (locationName: string, lat?: number, lng?: number) => void;
   selectedLocation: string;
   eventCategory: string;
 }
@@ -102,47 +102,46 @@ export default function LocationMapPicker({
 
     if (typeof window !== "undefined") {
       import("leaflet").then((L) => {
+        delete (L.Icon.Default.prototype as any)._getIconUrl;
+        L.Icon.Default.mergeOptions({
+          iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
+          iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
+          shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
+        });
 
-      delete (L.Icon.Default.prototype as any)._getIconUrl;
-      L.Icon.Default.mergeOptions({
-        iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
-        iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
-        shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
+        const greenIcon = new L.Icon({
+          iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png",
+          shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
+          iconSize: [25, 41],
+          iconAnchor: [12, 41],
+          popupAnchor: [1, -34],
+          shadowSize: [41, 41],
+        });
+
+        const orangeIcon = new L.Icon({
+          iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-orange.png",
+          shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
+          iconSize: [25, 41],
+          iconAnchor: [12, 41],
+          popupAnchor: [1, -34],
+          shadowSize: [41, 41],
+        });
+
+        const violetIcon = new L.Icon({
+          iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-violet.png",
+          shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
+          iconSize: [25, 41],
+          iconAnchor: [12, 41],
+          popupAnchor: [1, -34],
+          shadowSize: [41, 41],
+        });
+
+        setParkIcon(greenIcon);
+        setClubIcon(orangeIcon);
+        setLibraryIcon(violetIcon);
       });
-
-      const greenIcon = new L.Icon({
-        iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png",
-        shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
-        iconSize: [25, 41],
-        iconAnchor: [12, 41],
-        popupAnchor: [1, -34],
-        shadowSize: [41, 41],
-      });
-
-      const orangeIcon = new L.Icon({
-        iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-orange.png",
-        shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
-        iconSize: [25, 41],
-        iconAnchor: [12, 41],
-        popupAnchor: [1, -34],
-        shadowSize: [41, 41],
-      });
-
-      const violetIcon = new L.Icon({
-        iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-violet.png",
-        shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
-        iconSize: [25, 41],
-        iconAnchor: [12, 41],
-        popupAnchor: [1, -34],
-        shadowSize: [41, 41],
-      });
-
-      setParkIcon(greenIcon);
-      setClubIcon(orangeIcon);
-      setLibraryIcon(violetIcon);
-    });
-  }
-}, []);
+    }
+  }, []);
 
   const fetchLocationsData = async () => {
     try {
@@ -231,7 +230,7 @@ export default function LocationMapPicker({
 
   const handleSearchResultClick = (result: any) => {
     setTargetLocation([result.latitude, result.longitude]);
-    onLocationSelect(result.name, result.latitude, result.longitude); // UPDATED - now passes coordinates
+    onLocationSelect(result.name, result.latitude, result.longitude);
     setSearchQuery("");
     setSearchResults([]);
     setShowSearchResults(false);
@@ -272,14 +271,15 @@ export default function LocationMapPicker({
         </p>
       </div>
 
-      <div className="bg-white px-4 py-3 border-b border-gray-200">
+      {/* SEARCH BOX - FIXED Z-INDEX */}
+      <div className="bg-white px-4 py-3 border-b border-gray-200 relative z-[1000]">
         <div className="relative">
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => handleSearch(e.target.value)}
             placeholder="🔍 Search for any address, building, or postal code..."
-            className="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+            className="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white"
           />
           {isSearching && (
             <div className="absolute right-3 top-3">
@@ -287,8 +287,9 @@ export default function LocationMapPicker({
             </div>
           )}
 
+          {/* DROPDOWN - FIXED POSITIONING AND Z-INDEX */}
           {showSearchResults && searchResults.length > 0 && (
-            <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+            <div className="absolute z-[1001] w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-xl max-h-60 overflow-y-auto">
               {searchResults.map((result, idx) => (
                 <button
                   key={idx}
@@ -304,14 +305,15 @@ export default function LocationMapPicker({
           )}
 
           {showSearchResults && searchResults.length === 0 && !isSearching && searchQuery.length >= 3 && (
-            <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg p-4 text-center text-gray-500">
+            <div className="absolute z-[1001] w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg p-4 text-center text-gray-500">
               No results found for "{searchQuery}"
             </div>
           )}
         </div>
       </div>
 
-      <div className="h-96">
+      {/* MAP CONTAINER */}
+      <div className="h-96 relative z-0">
         <MapContainer center={userLocation || defaultCenter} zoom={12} style={{ height: "100%", width: "100%" }} scrollWheelZoom={true}>
           <TileLayer
             attribution='<img src="https://www.onemap.gov.sg/web-assets/images/logo/om_logo.png" style="height:20px;width:20px;"/> <a href="https://www.onemap.gov.sg/" target="_blank" rel="noopener noreferrer">OneMap</a> © contributors | <a href="https://www.sla.gov.sg/" target="_blank" rel="noopener noreferrer">Singapore Land Authority</a>'
