@@ -68,7 +68,7 @@ export default function MyEvents() {
 
       if (hostedError) throw hostedError;
 
-      let hosted = hostedData?.map((e: any) => ({
+      const hosted = hostedData?.map((e: any) => ({
         ...e,
         image: e.image_url || fallbackImage,
         disabled: false, // default, implement logic if needed

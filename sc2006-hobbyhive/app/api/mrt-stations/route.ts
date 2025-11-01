@@ -44,7 +44,7 @@ export async function GET() {
       const exitMatch = description.match(/<th>EXIT_CODE<\/th>\s*<td>(.*?)<\/td>/);
       
       if (stationMatch) {
-        let stationName = stationMatch[1]
+        const stationName = stationMatch[1]
           .replace(/ MRT STATION/gi, '')
           .replace(/ LRT STATION/gi, '')
           .trim();
