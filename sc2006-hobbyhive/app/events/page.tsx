@@ -15,6 +15,7 @@ interface Event {
   skill_level?: string;
   latitude?: number;
   longitude?: number;
+  distance?: number;
 }
 
 interface EventCardProps {
@@ -22,6 +23,7 @@ interface EventCardProps {
   title: string;
   date: string;
   skillLevel?: string;
+  distance?: number;
   onClick: () => void;
 }
 
@@ -36,7 +38,7 @@ interface FilterState {
   dateTo: string;
 }
 
-const EventCard: React.FC<EventCardProps> = ({ image, title, date, skillLevel, onClick }) => {
+const EventCard: React.FC<EventCardProps> = ({ image, title, date, skillLevel, distance, onClick }) => {
   const formatDate = (dateString: string) => {
     try {
       return new Date(dateString).toLocaleDateString("en-US", {
@@ -54,7 +56,6 @@ const EventCard: React.FC<EventCardProps> = ({ image, title, date, skillLevel, o
       onClick={onClick}
       className="bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow cursor-pointer overflow-hidden"
     >
-      {/* Image Container */}
       <div className="relative h-40 bg-gray-200 overflow-hidden">
         <img
           src={image}
@@ -63,14 +64,11 @@ const EventCard: React.FC<EventCardProps> = ({ image, title, date, skillLevel, o
         />
       </div>
 
-      {/* Content Container */}
       <div className="p-3">
-        {/* Title */}
         <h3 className="text-lg font-semibold text-gray-800 mb-2 line-clamp-2 hover:text-cyan-600 transition">
           {title}
         </h3>
 
-        {/* Date and Skill Level */}
         <div className="space-y-2 text-sm text-gray-600">
           <div className="flex items-center gap-2">
             <svg
@@ -109,20 +107,45 @@ const EventCard: React.FC<EventCardProps> = ({ image, title, date, skillLevel, o
               <span className="capitalize">{skillLevel}</span>
             </div>
           )}
+
+          {distance !== undefined && (
+            <div className="flex items-center gap-2">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4 text-cyan-500"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                />
+              </svg>
+              <span>{distance.toFixed(1)} km away</span>
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
 };
 
-// Haversine formula to calculate distance between two coordinates
 const calculateDistance = (
   lat1: number,
   lon1: number,
   lat2: number,
   lon2: number
 ): number => {
-  const R = 6371; // Earth's radius in kilometers
+  const R = 6371;
   const dLat = (lat2 - lat1) * (Math.PI / 180);
   const dLon = (lon2 - lon1) * (Math.PI / 180);
 
@@ -142,12 +165,15 @@ const EventsPage: React.FC = () => {
   const supabase = createClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [events, setEvents] = useState<Event[]>([]);
+  const [recommendedEvents, setRecommendedEvents] = useState<Event[]>([]);
   const [allEvents, setAllEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<FilterState | null>(null);
   const [isClient, setIsClient] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
 
-  // Load filters from localStorage on component mount
+  // Load filters and get current user
   useEffect(() => {
     setIsClient(true);
     const savedFilters = localStorage.getItem("eventFilters");
@@ -159,9 +185,36 @@ const EventsPage: React.FC = () => {
         console.error("Error parsing saved filters:", error);
       }
     }
-  }, []);
 
-  // Fetch events from Supabase
+    // Get current user and location
+    const getCurrentUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setCurrentUserId(user.id);
+
+        // Use browser geolocation
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              setUserLocation({
+                lat: position.coords.latitude,
+                lng: position.coords.longitude,
+              });
+            },
+            (error) => {
+              console.error("Location error:", error);
+              // Fallback to Singapore center
+              setUserLocation({ lat: 1.3521, lng: 103.8198 });
+            }
+          );
+        }
+      }
+    };
+
+    getCurrentUser();
+  }, [supabase]);
+
+  // Fetch all events
   useEffect(() => {
     const fetchEvents = async () => {
       try {
@@ -175,12 +228,15 @@ const EventsPage: React.FC = () => {
           console.error("Error fetching events:", error);
         } else {
           setAllEvents(data || []);
-          
-          // Apply saved filters if they exist
+
           if (filters) {
             applyFiltersToEvents(filters, data || []);
           } else {
             setEvents(data || []);
+          }
+
+          if (currentUserId && userLocation) {
+            await fetchRecommendedEvents(data || []);
           }
         }
       } catch (err) {
@@ -193,10 +249,52 @@ const EventsPage: React.FC = () => {
     if (isClient) {
       fetchEvents();
     }
-  }, [supabase, isClient, filters]);
+  }, [supabase, isClient, currentUserId, userLocation, filters]);
+
+  // Fetch user's joined event categories and recommend events
+  const fetchRecommendedEvents = async (allEventsData: Event[]) => {
+    try {
+      const { data: joinedEvents, error: joinError } = await supabase
+        .from("event_participants")
+        .select("events(category)")
+        .eq("user_id", currentUserId);
+
+      if (joinError) throw joinError;
+
+      const userCategories = [
+        ...new Set(joinedEvents?.map((e: any) => e.events?.category).filter(Boolean)),
+      ] as string[];
+
+      if (userCategories.length === 0 || !userLocation) {
+        setRecommendedEvents([]);
+        return;
+      }
+
+      const eventsWithDistance = allEventsData
+        .filter((event) => {
+          if (!userCategories.includes(event.category)) return false;
+          if (!event.latitude || !event.longitude) return false;
+          return true;
+        })
+        .map((event) => ({
+          ...event,
+          distance: calculateDistance(
+            userLocation.lat,
+            userLocation.lng,
+            event.latitude!,
+            event.longitude!
+          ),
+        }))
+        .sort((a, b) => a.distance - b.distance)
+        .slice(0, 4);
+
+      setRecommendedEvents(eventsWithDistance);
+    } catch (error) {
+      console.error("Error fetching recommended events:", error);
+    }
+  };
 
   const handleCardClick = (event: Event) => {
-    console.log("Clicked Event:", event.title);
     router.push(`/events/${event.id}`);
   };
 
@@ -204,8 +302,7 @@ const EventsPage: React.FC = () => {
     let filtered = allEvents.filter((event) =>
       event.title.toLowerCase().includes(query.toLowerCase())
     );
-    
-    // If filters are active, apply them too
+
     if (filters) {
       applyFiltersToEvents(filters, filtered);
     } else {
@@ -233,33 +330,27 @@ const EventsPage: React.FC = () => {
     }
   };
 
-  // Apply filters logic (extracted for reuse)
   const applyFiltersToEvents = (appliedFilters: FilterState, eventsToFilter: Event[]) => {
     let filtered = [...eventsToFilter];
 
-    // 1. Filter by categories
     if (appliedFilters.categories.length > 0) {
       filtered = filtered.filter((event) =>
         appliedFilters.categories.includes(event.category)
       );
     }
 
-    // 2. Filter by date range
     if (appliedFilters.dateFrom || appliedFilters.dateTo) {
       filtered = filtered.filter((event) => {
         const eventDate = new Date(event.date);
 
-        // If only "From" date is set
         if (appliedFilters.dateFrom && !appliedFilters.dateTo) {
           return eventDate >= new Date(appliedFilters.dateFrom);
         }
 
-        // If only "To" date is set
         if (appliedFilters.dateTo && !appliedFilters.dateFrom) {
           return eventDate <= new Date(appliedFilters.dateTo);
         }
 
-        // If both dates are set
         if (appliedFilters.dateFrom && appliedFilters.dateTo) {
           const fromDate = new Date(appliedFilters.dateFrom);
           const toDate = new Date(appliedFilters.dateTo);
@@ -270,13 +361,11 @@ const EventsPage: React.FC = () => {
       });
     }
 
-    // 3. Filter by location and distance
     if (
       appliedFilters.latitude !== undefined &&
       appliedFilters.longitude !== undefined
     ) {
       filtered = filtered.filter((event) => {
-        // Skip events without coordinates
         if (!event.latitude || !event.longitude) {
           return false;
         }
@@ -295,41 +384,31 @@ const EventsPage: React.FC = () => {
     setEvents(filtered);
   };
 
-  // Apply filters
   const handleApplyFilters = (appliedFilters: FilterState) => {
     setFilters(appliedFilters);
-    console.log("Applied filters:", appliedFilters);
-
-    // Save filters to localStorage
     localStorage.setItem("eventFilters", JSON.stringify(appliedFilters));
-
     applyFiltersToEvents(appliedFilters, allEvents);
   };
 
-  // Clear filters
   const handleClearFilters = () => {
     setFilters(null);
     setEvents(allEvents);
     setSearchQuery("");
-    // Remove from localStorage
     localStorage.removeItem("eventFilters");
   };
 
   if (!isClient) {
-    return null; // Avoid hydration mismatch
+    return null;
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-r from-teal-400 to-cyan-500">
-      {/* Navbar */}
       <div className="absolute top-2 left-4 z-50">
         <Navbar />
       </div>
 
-      {/* Header */}
       <Header />
 
-      {/* Search Bar */}
       <div className="bg-white shadow-sm py-4 px-4 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto flex items-center gap-3">
           <Filterbutton onApplyFilters={handleApplyFilters} />
@@ -346,7 +425,6 @@ const EventsPage: React.FC = () => {
               onClick={() => handleSearch(searchQuery)}
               className="absolute right-3 top-1/2 -translate-y-1/2"
             >
-              {/* Search Icon */}
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 className="h-5 w-5 text-gray-500"
@@ -364,7 +442,6 @@ const EventsPage: React.FC = () => {
             </button>
           </div>
 
-          {/* Clear Filters Button (shows when filters are active) */}
           {filters && (
             <button
               onClick={handleClearFilters}
@@ -376,7 +453,6 @@ const EventsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Active Filters Display */}
       {filters && (
         <div className="bg-teal-50 py-2 px-4 border-b border-teal-200">
           <div className="max-w-7xl mx-auto text-sm text-teal-800">
@@ -400,28 +476,55 @@ const EventsPage: React.FC = () => {
         </div>
       )}
 
-      {/* Event Cards Grid */}
       <div className="max-w-7xl mx-auto px-4 py-8">
-        {loading ? (
-          <p className="text-center text-white text-lg">Loading events...</p>
-        ) : events.length === 0 ? (
-          <p className="text-center text-white text-lg">
-            {filters ? "No events match your filters" : "No events found"}
-          </p>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-            {events.map((event) => (
-              <EventCard
-                key={event.id}
-                image={event.image_url}
-                title={event.title}
-                date={event.date}
-                skillLevel={event.skill_level} // Type assertion for skill_level
-                onClick={() => handleCardClick(event)}
-              />
-            ))}
+        {/* Recommended Events Section */}
+        {currentUserId && recommendedEvents.length > 0 && (
+          <div className="mb-12">
+            <h2 className="text-2xl font-bold text-white mb-6">
+              🎯 Recommended For You
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+              {recommendedEvents.map((event) => (
+                <EventCard
+                  key={event.id}
+                  image={event.image_url}
+                  title={event.title}
+                  date={event.date}
+                  skillLevel={event.skill_level}
+                  distance={event.distance}
+                  onClick={() => handleCardClick(event)}
+                />
+              ))}
+            </div>
           </div>
         )}
+
+        {/* Other Events Section */}
+        <div>
+          <h2 className="text-2xl font-bold text-white mb-6">
+            {currentUserId && recommendedEvents.length > 0 ? "Other Events" : "All Events"}
+          </h2>
+          {loading ? (
+            <p className="text-center text-white text-lg">Loading events...</p>
+          ) : events.length === 0 ? (
+            <p className="text-center text-white text-lg">
+              {filters ? "No events match your filters" : "No events found"}
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+              {events.map((event) => (
+                <EventCard
+                  key={event.id}
+                  image={event.image_url}
+                  title={event.title}
+                  date={event.date}
+                  skillLevel={event.skill_level}
+                  onClick={() => handleCardClick(event)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
