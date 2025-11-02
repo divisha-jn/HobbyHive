@@ -171,6 +171,11 @@ export default function PublicProfilePage() {
       return;
     }
 
+    if (currentUserId === userId) {
+      alert("You cannot flag your own profile");
+      return;
+    }
+
     const reason = prompt("Reason for flagging this profile:");
     if (reason === null) return;
 
@@ -181,20 +186,28 @@ export default function PublicProfilePage() {
 
     setIsProcessing(true);
     try {
-      const { error } = await supabase
+      console.log("[Flag] Attempting to flag user:", userId);
+      console.log("[Flag] Current user:", currentUserId);
+      console.log("[Flag] Reason:", reason);
+
+      const {error } = await supabase
         .from("profiles")
         .update({
           is_flagged: true,
           flag_reason: reason,
         })
-        .eq("id", userId);
+        .eq("id", userId)
 
-      if (error) throw error;
+      if (error) {
+        console.error("[Flag] Database error:", error.message);
+        throw error;
+      }
 
       alert("✅ Profile flagged successfully for admin review");
+      setProfile(prev => prev ? { ...prev } : null);
     } catch (err: any) {
-      console.error("Error flagging profile:", err);
-      alert("❌ Failed to flag profile");
+      console.error("[Flag] Error flagging profile:", err);
+      alert(`❌ Failed to flag profile: ${err.message || err}`);
     } finally {
       setIsProcessing(false);
     }

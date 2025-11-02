@@ -317,7 +317,8 @@ const ReviewUsers: React.FC = () => {
                       )}
                     </div>
 
-                    <div className="flex gap-2 ml-4">
+                    <div className="flex gap-2 ml-4 flex-wrap justify-end">
+                      {/* Only show Unflag button if user is flagged */}
                       {user.is_flagged && (
                         <button
                           onClick={() => handleUnflagUser(user.id, user.username)}
@@ -326,6 +327,8 @@ const ReviewUsers: React.FC = () => {
                           Unflag
                         </button>
                       )}
+                      
+                      {/* Ban/Unban buttons */}
                       {user.is_banned ? (
                         <button
                           onClick={() => handleUnbanUser(user.id, user.username)}
