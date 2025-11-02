@@ -145,11 +145,11 @@ export async function getParticipantGroupChats() {
   }
 
   // Create mock group chat list from joined events
-  return (data || []).map((p) => ({
-    id: p.events?.id,
-    name: `${p.events?.title || "Event"} Chat`,
-    avatar: p.events?.image_url || "https://i.pravatar.cc/150",
-  }));
+return (data || []).map((p: any) => ({
+  id: p.events?.id,
+  name: `${p.events?.title || "Event"} Chat`,
+  avatar: p.events?.image_url || "https://i.pravatar.cc/150",
+}));
 }
 
 // Get events that the participant has NOT joined yet
