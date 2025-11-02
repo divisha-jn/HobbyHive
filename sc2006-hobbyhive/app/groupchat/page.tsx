@@ -12,6 +12,7 @@ const Page = () => {
   const [userId, setUserId] = useState<string | null>(null);
   const [groupChats, setGroupChats] = useState<any[]>([]);
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
+  const [selectedChatDetails, setSelectedChatDetails] = useState<any>(null);
   const [groupMembers, setGroupMembers] = useState<any[]>([]);
   const [showMembers, setShowMembers] = useState(false);
   const [membersFetched, setMembersFetched] = useState(false);
@@ -217,11 +218,12 @@ const Page = () => {
     if (error) {
       console.error("error leaving group: ", error.message);
     } else {
-      setGroupMembers((prev) => prev.filter((m) => m.id !== userId)); // remove from current members
+      setGroupMembers((prev) => prev.filter((m) => m.id !== userId));
 
-      setGroupChats((prev) => prev.filter((c) => c.chat_id !== selectedChatId)); //remove group from sidebar
+      setGroupChats((prev) => prev.filter((c) => c.chat_id !== selectedChatId));
 
-      setSelectedChatId(null); //clear selected
+      setSelectedChatId(null);
+      setSelectedChatDetails(null);
     } 
   };
   
@@ -241,6 +243,11 @@ const Page = () => {
     }
 
   }
+
+  const handleSelectChat = (chat: any) => {
+    setSelectedChatId(chat.chat_id);
+    setSelectedChatDetails(chat);
+  };
     
   
 
@@ -255,12 +262,18 @@ const Page = () => {
       {/* layout */}
       <div className="Chat p-0 gap-4 flex flex-row flex-1 overflow-hidden mt-2">
         {/* sidebar groups */}
-        <ul className="list rounded-box shadow-md p-5 w-1/4 overflow-y-auto border-2 bg-teal-500
-">
+        <ul className="list rounded-box shadow-md p-5 w-1/4 overflow-y-auto border-2 bg-teal-500">
           {groupChats.length > 0? (
-            groupChats.map((chat => (
-              <li key = {chat.chat_id} className="flex items-center gap-3 py-6 text-white hover:bg-accent rounded-xl" 
-              onClick ={() => setSelectedChatId(chat.chat_id)}>
+            groupChats.map((chat) => (
+              <li 
+                key={chat.chat_id} 
+                className={`flex items-center gap-3 py-6 rounded-xl cursor-pointer transition-all ${
+                  selectedChatId === chat.chat_id 
+                    ? 'bg-cyan-600 text-white' 
+                    : 'text-white hover:bg-teal-600'
+                }`}
+                onClick={() => handleSelectChat(chat)}
+              >
                  <div className="w-10 h-10 flex items-center justify-center bg-white rounded-full font-bold">
                     <img 
                     src={chat.image_url}
@@ -268,94 +281,116 @@ const Page = () => {
                     className="w-full h-full object-cover rounded-2xl"
                     />
                   </div>
-                <div className="size-10 text-xl width-full break-words   w-[150px]">
+                <div className="size-10 text-xl width-full break-words w-[150px]">
                   {chat.event_title}
                 </div>
               </li>
-            )))
+            ))
 
           ):(<div className="text-white text-xl">No chats yet... <br></br>Join an event!</div>)}
         </ul>
 
         {/* chat room */}
-        <div className="Chatroom border-2 border-base-400 p-2 flex flex-col flex-1 rounded-2xl h-full bg-white">
-          <div className="flex justify-end mb-2">
-            <div className="flex flex-col items-end mb-2 text-white">
+        <div className="Chatroom border-2 border-base-400 p-0 flex flex-col flex-1 rounded-2xl h-full bg-white overflow-hidden">
+          
+          {/* HEADER WITH EVENT DETAILS */}
+          {selectedChatDetails && (
+            <div className="bg-gradient-to-r from-teal-500 to-cyan-500 p-4 border-b-2 border-teal-200 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <img 
+                  src={selectedChatDetails.image_url}
+                  alt={selectedChatDetails.event_title}
+                  className="w-12 h-12 rounded-lg object-cover"
+                />
+                <div>
+                  <h2 className="text-xl font-bold text-white">{selectedChatDetails.event_title}</h2>
+                </div>
+              </div>
               <button
                 onClick={() => setShowMembers(!showMembers)}
-                className="btn btn-sm btn-outline btn-accent bg-accent text-black rounded-xl"
+                className="btn btn-sm btn-outline text-white border-white hover:bg-white hover:text-teal-500 rounded-xl"
               >
-                👥 {showMembers ? "Hide Members" : "View Members"}
+                👥 {showMembers ? "Hide" : "View"} Members
               </button>
-
-              {/* show member list */}
-              {showMembers && (
-                <div className="bg-base-200 rounded-lg p-3 mt-3 w-full transition-shadow duration-300">
-                  {groupMembers.length > 0 ? (
-                    groupMembers.map((m, i) => (
-                      <div key={i} className="flex items-center justify-between bg-base-300 rounded-lg p-2 mb-2">
-                        <span className="px-5">{m.profiles?.username}</span>
-                      
-                        {m.user_id === userId && userId !== hostId && (
-                          <button onClick={() => handleLeave()}
-                          className="btn btn-xs btn-error">
-                            leave
-                          </button>
-                        )}
-
-                        {hostId === userId && m.user_id !== hostId && (
-                          <button
-                             onClick={ () => handleRemove(m.user_id)}
-                             className="btn btn-xs btn-error">
-                              remove
-                             </button>
-                        )}
-                        
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-gray-400 italic text-sm">
-                      {membersFetched ? "No members found..." : "Loading members..."}
-                    </p>
-                  )}
-                </div>
-              )}
             </div>
-          </div>
-          <div className="flex-1 p-2 space-y-4 rounded-lg overflow-y-auto text-xl">
-            {messages.length > 0 ? (
-              messages.map((msg, idx) => (
-                <div key={idx}>
-                  <div className={`${msg.sender_id === userId ? "chat chat-start" : "chat chat-end"}`}>
-                    <div className="chat chat-header">{msg.profiles?.username}</div>
-                    <p className="chat-bubble">{msg.content}</p>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <p className="text-gray-500 text-center">No messages yet...</p>
-            )}
-            <div ref={messagesEndRef} />
-          </div>
+          )}
 
-          {/* input bar */}
-          <div className="flex p-2 gap-4 items-end w-full text-black">
-            <input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  if (input.trim() !== "") handleSend();
-                }
-              }}
-              placeholder="Enter your message..."
-              className="input input-bordered w-full"
-            />
-            <button onClick={handleSend} className="btn btn-accent rounded-xl font-bold">
-              send
-            </button>
-          </div>
+          {selectedChatId ? (
+            <>
+                  {/* show member list */}
+                  {showMembers && (
+                    <div className="fixed bottom-77 right-8 w-64 bg-base-200 rounded-lg p-3 shadow-lg z-10">
+                      {groupMembers.length > 0 ? (
+                        groupMembers.map((m, i) => (
+                          <div key={i} className="flex items-center justify-between bg-base-300 rounded-lg p-2 mb-2">
+                            <span className="px-5">{m.profiles?.username}</span>
+                          
+                            {m.user_id === userId && userId !== hostId && (
+                              <button onClick={() => handleLeave()}
+                              className="btn btn-xs btn-error">
+                                leave
+                              </button>
+                            )}
+
+                            {hostId === userId && m.user_id !== hostId && (
+                              <button
+                                 onClick={ () => handleRemove(m.user_id)}
+                                 className="btn btn-xs btn-error">
+                                  remove
+                                 </button>
+                            )}
+                            
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-gray-400 italic text-sm">
+                          {membersFetched ? "No members found..." : "Loading members..."}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                
+              
+              <div className="flex-1 p-2 space-y-4 rounded-lg overflow-y-auto text-xl">
+                {messages.length > 0 ? (
+                  messages.map((msg, idx) => (
+                    <div key={idx}>
+                      <div className={`${msg.sender_id === userId ? "chat chat-start" : "chat chat-end"}`}>
+                        <div className="chat chat-header">{msg.profiles?.username}</div>
+                        <p className="chat-bubble">{msg.content}</p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-gray-500 text-center">No messages yet...</p>
+                )}
+                <div ref={messagesEndRef} />
+              </div>
+
+              {/* input bar */}
+              <div className="flex p-2 gap-4 items-end w-full text-black border-t border-gray-300">
+                <input
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      if (input.trim() !== "") handleSend();
+                    }
+                  }}
+                  placeholder="Enter your message..."
+                  className="input input-bordered w-full"
+                />
+                <button onClick={handleSend} className="btn btn-accent rounded-xl font-bold">
+                  send
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="flex items-center justify-center h-full text-gray-400 text-xl">
+              <p>Select a chat to start messaging</p>
+            </div>
+          )}
         </div>
       </div>
     </div>
