@@ -12,6 +12,7 @@ interface Event {
   image_url: string;
   category: string;
   date: string;
+  skill_level?: string;
   latitude?: number;
   longitude?: number;
 }
@@ -19,6 +20,8 @@ interface Event {
 interface EventCardProps {
   image: string;
   title: string;
+  date: string;
+  skillLevel?: string;
   onClick: () => void;
 }
 
@@ -33,22 +36,84 @@ interface FilterState {
   dateTo: string;
 }
 
-const EventCard: React.FC<EventCardProps> = ({ image, title, onClick }) => (
-  <div
-    onClick={onClick}
-    className="relative rounded-2xl overflow-hidden cursor-pointer transition-transform hover:scale-105 hover:shadow-xl"
-    style={{ aspectRatio: "4/3" }}
-  >
-    <img
-      src={image}
-      alt={title}
-      className="w-full h-full object-cover"
-    />
-    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4">
-      <h3 className="text-white font-semibold text-lg">{title}</h3>
+const EventCard: React.FC<EventCardProps> = ({ image, title, date, skillLevel, onClick }) => {
+  const formatDate = (dateString: string) => {
+    try {
+      return new Date(dateString).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
+    } catch {
+      return dateString;
+    }
+  };
+
+  return (
+    <div
+      onClick={onClick}
+      className="bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow cursor-pointer overflow-hidden"
+    >
+      {/* Image Container */}
+      <div className="relative h-40 bg-gray-200 overflow-hidden">
+        <img
+          src={image}
+          alt={title}
+          className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+        />
+      </div>
+
+      {/* Content Container */}
+      <div className="p-3">
+        {/* Title */}
+        <h3 className="text-lg font-semibold text-gray-800 mb-2 line-clamp-2 hover:text-cyan-600 transition">
+          {title}
+        </h3>
+
+        {/* Date and Skill Level */}
+        <div className="space-y-2 text-sm text-gray-600">
+          <div className="flex items-center gap-2">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-4 w-4 text-cyan-500"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+              />
+            </svg>
+            <span>{formatDate(date)}</span>
+          </div>
+
+          {skillLevel && (
+            <div className="flex items-center gap-2">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4 text-cyan-500"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M13 10V3L4 14h7v7l9-11h-7z"
+                />
+              </svg>
+              <span className="capitalize">{skillLevel}</span>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 // Haversine formula to calculate distance between two coordinates
 const calculateDistance = (
@@ -102,7 +167,7 @@ const EventsPage: React.FC = () => {
       try {
         const { data, error } = await supabase
           .from("events")
-          .select("id, title, image_url, category, date, latitude, longitude")
+          .select("id, title, image_url, category, skill_level, date, latitude, longitude")
           .eq("status", "approved")
           .order("created_at", { ascending: false });
 
@@ -344,12 +409,14 @@ const EventsPage: React.FC = () => {
             {filters ? "No events match your filters" : "No events found"}
           </p>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             {events.map((event) => (
               <EventCard
                 key={event.id}
                 image={event.image_url}
                 title={event.title}
+                date={event.date}
+                skillLevel={event.skill_level} // Type assertion for skill_level
                 onClick={() => handleCardClick(event)}
               />
             ))}
