@@ -299,7 +299,7 @@ const EventsPage: React.FC = () => {
   };
 
   const handleSearch = (query: string) => {
-    let filtered = allEvents.filter((event) =>
+    const filtered = allEvents.filter((event) =>
       event.title.toLowerCase().includes(query.toLowerCase())
     );
 
