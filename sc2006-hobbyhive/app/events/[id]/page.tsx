@@ -243,15 +243,18 @@ export default function EventListing() {
         </div>
 
 
-        {/* Host Info */}
-        <div className="bg-cyan-50 rounded-xl p-4 mb-6 border border-cyan-200">
+        {/* Host Info - Clickable */}
+        <div
+        onClick={() => router.push(`/participant/${event.host_id}`)}
+        className="bg-cyan-50 rounded-xl p-4 mb-6 border border-cyan-200 cursor-pointer hover:bg-cyan-100 transition"
+        >
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-full bg-gradient-to-br from-yellow-300 to-orange-300 flex items-center justify-center font-bold text-white">
-              {hostName.charAt(0)}
+            {hostName.charAt(0)}
             </div>
             <div>
               <p className="font-semibold text-gray-800">{hostName}</p>
-              <p className="text-xs text-gray-600">Event Host</p>
+              <p className="text-xs text-gray-600">Event Host • Click to view profile</p>
             </div>
           </div>
         </div>

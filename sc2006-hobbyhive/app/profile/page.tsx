@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Header from "../components/header";
 import Navbar from "../components/Navbar";
+import FollowersList from "../components/FollowersList";
 import { useRouter } from "next/navigation";
 import {
   getCurrentUser,
@@ -11,20 +12,7 @@ import {
   updatePassword,
   uploadProfilePicture,
 } from "@/utils/supabase/account";
-import FollowedUsers from "../participant/FollowedUsers/FollowedUsers";
 import { createClient } from "@/utils/supabase/client";
-
-interface FollowingUser {
-  id: number;
-  name: string;
-  avatar: string;
-}
-
-interface GroupChat {
-  id: number;
-  name: string;
-  avatar: string;
-}
 
 const ProfilePage: React.FC = () => {
   const [user, setUser] = useState<any>(null);
@@ -33,22 +21,16 @@ const ProfilePage: React.FC = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [profilePic, setProfilePic] = useState<File | null>(null);
-  const [address, setAddress] = useState("50 Nanyang Ave,\nSingapore 639798");
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState("");
   const [isEditing, setIsEditing] = useState(false);
   const [eventsParticipatedCount, setEventsParticipatedCount] = useState(0);
   const [eventsHostedCount, setEventsHostedCount] = useState(0);
+  const [followersCount, setFollowersCount] = useState(0);
+  const [followingCount, setFollowingCount] = useState(0);
 
   const router = useRouter();
-
-  const following: FollowingUser[] = [
-    { id: 1, name: "Alan Wong", avatar: "https://i.pravatar.cc/150?img=12" },
-  ];
-
-  const groupChats: GroupChat[] = [
-    { id: 1, name: "Alan's Badminton ...", avatar: "https://i.pravatar.cc/150?img=13" },
-  ];
+  const supabase = createClient();
 
   // Load user and profile data
   useEffect(() => {
@@ -64,11 +46,11 @@ const ProfilePage: React.FC = () => {
     loadUser();
   }, []);
 
-  // Load hosted & participated event counts
+  // Load hosted & participated event counts + follower counts
   useEffect(() => {
     const loadCounts = async () => {
       if (!user) return;
-      const supabase = await createClient();
+
       try {
         // Count hosted events
         const { data: hostedData, error: hostedError } = await supabase
@@ -83,28 +65,35 @@ const ProfilePage: React.FC = () => {
         const { data: participantData, error: participantError } = await supabase
           .from("event_participants")
           .select("event_id", { count: "exact" })
-          .eq("user_id", user.id)
-          .eq("events.status", "approved"); // you may need a proper join depending on Supabase setup
+          .eq("user_id", user.id);
         if (participantError) throw participantError;
         setEventsParticipatedCount(participantData?.length ?? 0);
+
+        // Count followers
+        const { data: followers, error: followersError } = await supabase
+          .from("follows")
+          .select("follower_id", { count: "exact" })
+          .eq("followed_id", user.id);
+        if (followersError) throw followersError;
+        setFollowersCount(followers?.length ?? 0);
+
+        // Count following
+        const { data: following, error: followingError } = await supabase
+          .from("follows")
+          .select("followed_id", { count: "exact" })
+          .eq("follower_id", user.id);
+        if (followingError) throw followingError;
+        setFollowingCount(following?.length ?? 0);
       } catch (err) {
         console.error("Failed to fetch event counts", err);
       }
     };
 
     loadCounts();
-  }, [user]);
+  }, [user, supabase]);
 
   const handleFindEvents = () => router.push("/MyEvents");
   const handleCreateEvent = () => router.push("/host/CreateEvent");
-
-  const handleFollowingClick = (user: FollowingUser) => {
-    console.log("Clicked on following user:", user.name);
-  };
-
-  const handleGroupChatClick = (group: GroupChat) => {
-    console.log("Clicked on group chat:", group.name);
-  };
 
   const handleUpdate = async () => {
     if (!user) return;
@@ -153,7 +142,9 @@ const ProfilePage: React.FC = () => {
   };
 
   const handleCancelEdit = () => {
-    if (profile) setUsername(profile.username);
+    if (profile) {
+      setUsername(profile.username);
+    }
     setPassword("");
     setProfilePic(null);
     setIsEditing(false);
@@ -163,7 +154,7 @@ const ProfilePage: React.FC = () => {
   if (!user) return <p className="p-6 text-center">Loading...</p>;
 
   return (
-    <div className="h-screen bg-gradient-to-r from-teal-400 to-cyan-500">
+    <div className="min-h-screen bg-gradient-to-r from-teal-400 to-cyan-500">
       {/* Navbar wrapper fixes TS error */}
       <div className="absolute top-2 left-4 z-50">
         <Navbar />
@@ -171,10 +162,10 @@ const ProfilePage: React.FC = () => {
 
       <Header />
 
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column */}
-          <div className="lg:col-span-2 bg-white rounded-lg shadow-md p-6">
+      <div className="max-w-full mx-auto px-4 py-8">
+        <div className="space-y-6">
+          {/* Profile Section */}
+          <div className="bg-white rounded-lg shadow-md p-6">
             <div className="flex flex-col md:flex-row gap-6">
               {/* Profile Picture */}
               <div className="flex flex-col items-center">
@@ -245,25 +236,27 @@ const ProfilePage: React.FC = () => {
 
               {/* Stats & Profile Fields */}
               <div className="flex-1">
-                <div className="flex gap-20 mb-6">
+                {/* Stats Row */}
+                <div className="flex gap-6 mb-6 flex-wrap justify-center md:justify-start">
                   <div className="text-center">
-                    <div className="text-5xl font-bold">{eventsParticipatedCount}</div>
-                    <div className="text-sm text-gray-600">
-                      Events
-                      <br />
-                      Participated
-                    </div>
+                    <div className="text-4xl font-bold">{eventsParticipatedCount}</div>
+                    <div className="text-sm text-gray-600">Events Participated</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-5xl font-bold">{eventsHostedCount}</div>
-                    <div className="text-sm text-gray-600">
-                      Events
-                      <br />
-                      Hosted
-                    </div>
+                    <div className="text-4xl font-bold">{eventsHostedCount}</div>
+                    <div className="text-sm text-gray-600">Events Hosted</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-4xl font-bold">{followersCount}</div>
+                    <div className="text-sm text-gray-600">Followers</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-4xl font-bold">{followingCount}</div>
+                    <div className="text-sm text-gray-600">Following</div>
                   </div>
                 </div>
 
+                {/* Action Buttons */}
                 <div className="flex gap-4 mb-6">
                   <button
                     onClick={handleFindEvents}
@@ -284,19 +277,7 @@ const ProfilePage: React.FC = () => {
                 {/* Profile Fields */}
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Address
-                    </label>
-                    <textarea
-                      value={address}
-                      onChange={(e) => setAddress(e.target.value)}
-                      disabled={!isEditing}
-                      className="w-full px-3 py-2 bg-gray-200 rounded resize-none"
-                      rows={2}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-base font-medium text-gray-700 mb-1">
                       Username
                     </label>
                     <input
@@ -308,7 +289,7 @@ const ProfilePage: React.FC = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-base font-medium text-gray-700 mb-1">
                       Email
                     </label>
                     <input
@@ -320,7 +301,7 @@ const ProfilePage: React.FC = () => {
                   </div>
                   {isEditing && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-base font-medium text-gray-700 mb-1">
                         New Password
                       </label>
                       <input
@@ -342,42 +323,10 @@ const ProfilePage: React.FC = () => {
             </div>
           </div>
 
-          {/* Right Column */}
-          <div className="space-y-6">
-            <div className="space-y-2">
-              <FollowedUsers />
-            </div>
-
-            <div className="bg-white rounded-lg shadow-md p-4">
-              <h2 className="text-xl font-bold mb-4">Group Chats</h2>
-              <div className="space-y-2">
-                {groupChats.map((group) => (
-                  <div
-                    key={group.id}
-                    onClick={() => handleGroupChatClick(group)}
-                    className="flex items-center justify-between p-3 hover:bg-gray-100 rounded-lg cursor-pointer transition"
-                  >
-                    <div className="flex items-center gap-3">
-                      <img
-                        src={group.avatar}
-                        alt={group.name}
-                        className="w-10 h-10 rounded-full"
-                      />
-                      <span className="font-medium">{group.name}</span>
-                    </div>
-                    <button className="text-gray-500 hover:text-gray-700">
-                      <svg
-                        className="w-5 h-5"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
-                        <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z" />
-                      </svg>
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
+          {/* Followers and Following - Full Width Below */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <FollowersList userId={user.id} type="followers" title="My Followers" />
+            <FollowersList userId={user.id} type="following" title="I'm Following" />
           </div>
         </div>
       </div>

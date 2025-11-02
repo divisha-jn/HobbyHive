@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
 import Header from "@/app/components/header";
-import Navbar from "@/app/components/Navbar";
 import { useRouter } from "next/navigation";
 import AuthWrapper from "@/app/components/AuthWrapper";
 
@@ -172,30 +171,33 @@ const ReviewUsers: React.FC = () => {
 
   const formatBanDuration = (bannedUntil: string | null) => {
     if (!bannedUntil) return "Permanent";
-    
+
     const banDate = new Date(bannedUntil);
     const now = new Date();
     const daysLeft = Math.ceil((banDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-    
+
     if (daysLeft <= 0) return "Expired";
-    return `${daysLeft} day${daysLeft !== 1 ? 's' : ''} remaining`;
+    return `${daysLeft} day${daysLeft !== 1 ? "s" : ""} remaining`;
   };
 
   return (
     <AuthWrapper allowedRoles={["admin"]}>
-        <div className="min-h-screen" style={{ backgroundColor: "#A8F0EB" }}>
-          <div className="absolute top-4 right-4">
-            <button
-              onClick={async () => {
-                await createClient().auth.signOut();
-                router.push("/login");
-              }}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg shadow-md hover:bg-red-700"
-            >
-              Logout
-            </button>
-          </div>
-          <Header />
+      <div className="min-h-screen" style={{ backgroundColor: "#A8F0EB" }}>
+        {/* Header */}
+        <Header />
+
+        {/* Logout button */}
+        <div className="absolute top-4 right-4">
+          <button
+            onClick={async () => {
+              await createClient().auth.signOut();
+              router.push("/login");
+            }}
+            className="px-4 py-2 bg-red-600 text-white rounded-lg shadow-md hover:bg-red-700"
+          >
+            Logout
+          </button>
+        </div>
 
         <div className="max-w-7xl mx-auto px-4 py-8">
           <div className="flex items-center justify-between mb-6">
@@ -280,7 +282,7 @@ const ReviewUsers: React.FC = () => {
                           </span>
                         )}
                       </div>
-                      <p className="text-gray-600 mb-1">{user.email}</p>
+                      <p className="text-gray-600 mb-3">{user.email}</p>
                       <p className="text-sm text-gray-500">
                         Joined: {new Date(user.created_at).toLocaleDateString()}
                       </p>
@@ -306,7 +308,8 @@ const ReviewUsers: React.FC = () => {
                             </p>
                             {user.banned_until && (
                               <p className="text-sm text-gray-600">
-                                <strong>Expires:</strong> {new Date(user.banned_until).toLocaleDateString()} at {new Date(user.banned_until).toLocaleTimeString()}
+                                <strong>Expires:</strong> {new Date(user.banned_until).toLocaleDateString()} at{" "}
+                                {new Date(user.banned_until).toLocaleTimeString()}
                               </p>
                             )}
                           </div>
