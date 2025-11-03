@@ -1,15 +1,21 @@
 import { NextResponse } from 'next/server';
 
-export async function GET() {
+let cachedStations: any[] | null = null;
+let cacheTime: number = 0;
+const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
+
+async function fetchMRTStations() {
+  // Return cached data if still valid
+  if (cachedStations && Date.now() - cacheTime < CACHE_DURATION) {
+    return cachedStations;
+  }
+
   try {
-    // LTA MRT Station Exit dataset from data.gov.sg
     const datasetId = 'd_b39d3a0871985372d7e1637193335da5';
     const url = `https://api-open.data.gov.sg/v1/public/api/datasets/${datasetId}/poll-download`;
     
     const response = await fetch(url, {
-      headers: {
-        'Accept': 'application/json',
-      },
+      headers: { 'Accept': 'application/json' },
     });
 
     if (!response.ok) {
@@ -30,16 +36,12 @@ export async function GET() {
     }
 
     const geoJsonData = await dataResponse.json();
-
-    // Transform and deduplicate by station name
     const stationsMap = new Map();
     
     geoJsonData.features.forEach((feature: any) => {
-
       const description = feature.properties.Description || '';
       const coordinates = feature.geometry.coordinates;
       
-      // Extract station name from HTML description
       const stationMatch = description.match(/<th>STATION_NA<\/th>\s*<td>(.*?)<\/td>/);
       const exitMatch = description.match(/<th>EXIT_CODE<\/th>\s*<td>(.*?)<\/td>/);
       
@@ -49,7 +51,6 @@ export async function GET() {
           .replace(/ LRT STATION/gi, '')
           .trim();
         
-        // Use first exit's coordinates for each station (or average if you prefer)
         if (!stationsMap.has(stationName)) {
           stationsMap.set(stationName, {
             name: stationName,
@@ -58,7 +59,6 @@ export async function GET() {
             exits: [exitMatch ? exitMatch[1] : '']
           });
         } else {
-          // Add exit to existing station
           const station = stationsMap.get(stationName);
           if (exitMatch) {
             station.exits.push(exitMatch[1]);
@@ -67,23 +67,46 @@ export async function GET() {
       }
     });
 
-    // Convert map to array
-        const stations = Array.from(stationsMap.values()).map((station: any) => ({
-                name: station.name,
-                latitude: station.latitude,
-                longitude: station.longitude,
-                exitCount: station.exits.filter((e: any) => e).length
-        }));
+    const stations = Array.from(stationsMap.values()).map((station: any) => ({
+      name: station.name,
+      latitude: station.latitude,
+      longitude: station.longitude,
+      exitCount: station.exits.filter((e: any) => e).length
+    }));
 
+    // Cache the result
+    cachedStations = stations;
+    cacheTime = Date.now();
+
+    return stations;
+  } catch (error: any) {
+    console.error('Error fetching MRT stations:', error);
+    // If cache exists but is stale, return it as fallback
+    if (cachedStations) {
+      return cachedStations;
+    }
+    throw error;
+  }
+}
+
+export async function GET() {
+  try {
+    const stations = await fetchMRTStations();
 
     return NextResponse.json({
       success: true,
       stations,
       count: stations.length
+    }, {
+      headers: {
+        'Cache-Control': 'public, max-age=86400',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      }
     });
 
   } catch (error: any) {
-    console.error('Error fetching MRT stations:', error);
+    console.error('Error in MRT API:', error);
     return NextResponse.json(
       {
         success: false,
@@ -92,4 +115,14 @@ export async function GET() {
       { status: 500 }
     );
   }
+}
+
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+    },
+  });
 }
