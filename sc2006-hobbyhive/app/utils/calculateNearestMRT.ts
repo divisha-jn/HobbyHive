@@ -31,14 +31,16 @@ export async function findNearestMRT(
   longitude: number
 ): Promise<{ name: string; distance: number } | null> {
   try {
-    // Fetch MRT stations from your API
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/mrt-stations`
-    );
+    const response = await fetch('/api/mrt-stations');
+    
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+
     const data = await response.json();
 
     if (!data.success || !data.stations) {
-      throw new Error('Failed to fetch MRT stations');
+      throw new Error('Invalid MRT data format');
     }
 
     const stations: MRTStation[] = data.stations;
