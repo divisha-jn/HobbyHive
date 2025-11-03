@@ -136,7 +136,7 @@ function CreateEventContent() {
     if (lat !== undefined && lng !== undefined) {
       setLatitude(lat);
       setLongitude(lng);
-      
+
       const mrtInfo = await findNearestMRT(lat, lng);
       if (mrtInfo) {
         setNearestMRT(mrtInfo.name);
@@ -332,9 +332,7 @@ function CreateEventContent() {
 
               <form onSubmit={handleSubmit} className="space-y-6 text-left">
                 <div>
-                  <label className="block mb-2 font-semibold">
-                    Event Title *
-                  </label>
+                  <label className="block mb-2 font-semibold">Event Title *</label>
                   <input
                     type="text"
                     value={title}
@@ -346,9 +344,7 @@ function CreateEventContent() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block mb-2 font-semibold">
-                      Event Category *
-                    </label>
+                    <label className="block mb-2 font-semibold">Event Category *</label>
                     <select
                       value={category}
                       onChange={(e) => setCategory(e.target.value)}
@@ -363,9 +359,7 @@ function CreateEventContent() {
                     </select>
                   </div>
                   <div>
-                    <label className="block mb-2 font-semibold">
-                      Skill Level *
-                    </label>
+                    <label className="block mb-2 font-semibold">Skill Level *</label>
                     <select
                       value={skillLevel}
                       onChange={(e) => setSkillLevel(e.target.value)}
@@ -412,9 +406,7 @@ function CreateEventContent() {
                           onClick={() => setUseMapPicker(!useMapPicker)}
                           className="text-sm bg-teal-100 text-teal-700 px-3 py-1 rounded hover:bg-teal-200 transition"
                         >
-                          {useMapPicker
-                            ? "📝 Switch to Manual Entry"
-                            : "🗺️ Use Map Picker"}
+                          {useMapPicker ? "📝 Switch to Manual Entry" : "🗺️ Use Map Picker"}
                         </button>
                       )}
                   </div>
@@ -425,9 +417,7 @@ function CreateEventContent() {
                     </div>
                   )}
 
-                  {useMapPicker &&
-                  category &&
-                  getLocationConfigForCategory(category).showMapPicker ? (
+                  {useMapPicker && category && getLocationConfigForCategory(category).showMapPicker ? (
                     <>
                       <LocationMapPicker
                         onLocationSelect={handleLocationSelect}
@@ -470,9 +460,7 @@ function CreateEventContent() {
                 )}
 
                 <div>
-                  <label className="block mb-2 font-semibold">
-                    Description
-                  </label>
+                  <label className="block mb-2 font-semibold">Description</label>
                   <textarea
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
@@ -484,9 +472,7 @@ function CreateEventContent() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block mb-2 font-semibold">
-                      Max Participants *
-                    </label>
+                    <label className="block mb-2 font-semibold">Max Participants *</label>
                     <input
                       type="number"
                       value={capacity}
@@ -497,15 +483,11 @@ function CreateEventContent() {
                     />
                   </div>
                   <div>
-                    <label className="block mb-2 font-semibold">
-                      Upload Image (optional)
-                    </label>
+                    <label className="block mb-2 font-semibold">Upload Image (optional)</label>
                     <input
                       type="file"
                       accept="image/*"
-                      onChange={(e) =>
-                        setImageFile(e.target.files?.[0] || null)
-                      }
+                      onChange={(e) => setImageFile(e.target.files?.[0] || null)}
                       className="w-full border border-gray-300 p-2 rounded focus:outline-none focus:ring-2 focus:ring-teal-500"
                     />
                   </div>
@@ -515,9 +497,7 @@ function CreateEventContent() {
                   type="submit"
                   disabled={isLoading}
                   className={`w-full py-3 rounded text-white font-semibold ${
-                    isLoading
-                      ? "bg-gray-400 cursor-not-allowed"
-                      : "bg-teal-500 hover:bg-teal-600"
+                    isLoading ? "bg-gray-400 cursor-not-allowed" : "bg-teal-500 hover:bg-teal-600"
                   }`}
                 >
                   {isLoading
@@ -525,8 +505,8 @@ function CreateEventContent() {
                       ? "Updating Event..."
                       : "Creating Event..."
                     : eventToEdit
-                      ? "Update Event"
-                      : "Create Event"}
+                    ? "Update Event"
+                    : "Create Event"}
                 </button>
               </form>
             </>

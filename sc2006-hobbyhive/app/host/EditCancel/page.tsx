@@ -1,12 +1,11 @@
 "use client";
 import React, { useState, useEffect, Suspense } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import dynamic from "next/dynamic";
 import { getLocationConfigForCategory } from "@/app/config/categoryLocationMapping";
 import LocationAutocompleteInput from "../../components/LocationAutocompleteInput";
 import { findNearestMRT } from "@/app/utils/calculateNearestMRT";
-import { useSearchParams } from "next/navigation";
 
 const LocationMapPicker = dynamic(
   () => import("../../components/LocationMapPicker"),
@@ -23,7 +22,7 @@ function EditCancelContent() {
   const [event, setEvent] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [useMapPicker, setUseMapPicker] = useState(false);
-  
+
   const [form, setForm] = useState({
     title: "",
     description: "",
@@ -33,7 +32,7 @@ function EditCancelContent() {
     category: "",
     capacity: "",
   });
-  
+
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
   const [nearestMRT, setNearestMRT] = useState<string | null>(null);
@@ -73,7 +72,7 @@ function EditCancelContent() {
           category: data.category || "",
           capacity: data.capacity?.toString() || "",
         });
-        
+
         if (data.latitude) setLatitude(data.latitude);
         if (data.longitude) setLongitude(data.longitude);
         if (data.nearest_mrt_station) setNearestMRT(data.nearest_mrt_station);
@@ -86,11 +85,11 @@ function EditCancelContent() {
 
   const handleLocationSelect = async (locationName: string, lat?: number, lng?: number) => {
     setForm({ ...form, location: locationName });
-    
+
     if (lat !== undefined && lng !== undefined) {
       setLatitude(lat);
       setLongitude(lng);
-      
+
       const mrtInfo = await findNearestMRT(lat, lng);
       if (mrtInfo) {
         setNearestMRT(mrtInfo.name);
@@ -161,8 +160,10 @@ function EditCancelContent() {
         {mode === "cancel" ? (
           <div className="text-center">
             <p className="text-gray-700 mb-4">
-              <b>{event.title}</b><br />
-              {event.date} — {event.time}<br />
+              <b>{event.title}</b>
+              <br />
+              {event.date} — {event.time}
+              <br />
               {event.location}
             </p>
             <div className="flex justify-center gap-4">
@@ -255,9 +256,7 @@ function EditCancelContent() {
                       onClick={() => setUseMapPicker(!useMapPicker)}
                       className="text-sm bg-teal-100 text-teal-700 px-3 py-1 rounded hover:bg-teal-200 transition"
                     >
-                      {useMapPicker
-                        ? "📝 Switch to Manual Entry"
-                        : "🗺️ Use Map Picker"}
+                      {useMapPicker ? "📝 Switch to Manual Entry" : "🗺️ Use Map Picker"}
                     </button>
                   )}
               </div>
