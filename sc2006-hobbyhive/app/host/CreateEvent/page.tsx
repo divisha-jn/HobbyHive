@@ -1,6 +1,5 @@
 "use client";
-
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { createClient } from "@/utils/supabase/client";
 import Header from "../../components/header";
 import Navbar from "../../components/Navbar";
@@ -32,14 +31,13 @@ interface EventData {
   image_url?: string;
 }
 
-export default function CreateEvent() {
+function CreateEventContent() {
   const supabase = createClient();
   const searchParams = useSearchParams();
   const router = useRouter();
   const eventId = searchParams.get("eventId");
 
   const [eventToEdit, setEventToEdit] = useState<EventData | null>(null);
-
   const [title, setTitle] = useState("");
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
@@ -80,7 +78,6 @@ export default function CreateEvent() {
     "All levels welcome",
   ];
 
-  // Fetch event data if editing
   useEffect(() => {
     if (!eventId) return;
 
@@ -115,9 +112,8 @@ export default function CreateEvent() {
     };
 
     fetchEvent();
-  }, [eventId]);
+  }, [eventId, supabase]);
 
-  // Initialize form values from eventToEdit
   useEffect(() => {
     if (eventToEdit) {
       setTitle(eventToEdit.title);
@@ -141,7 +137,6 @@ export default function CreateEvent() {
       setLatitude(lat);
       setLongitude(lng);
       
-      // Calculate nearest MRT
       const mrtInfo = await findNearestMRT(lat, lng);
       if (mrtInfo) {
         setNearestMRT(mrtInfo.name);
@@ -156,9 +151,7 @@ export default function CreateEvent() {
     setIsLoading(true);
     setMessage("");
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       setMessage("Please log in first.");
       setIsLoading(false);
@@ -166,7 +159,6 @@ export default function CreateEvent() {
     }
     const userId = user.id;
 
-    // Validation
     const newErrors: { [key: string]: boolean } = {};
     if (!title) newErrors.title = true;
     if (!category) newErrors.category = true;
@@ -184,7 +176,6 @@ export default function CreateEvent() {
     }
 
     try {
-      // Upload image if new file selected
       let imageUrl =
         eventToEdit?.image_url ||
         "https://images.unsplash.com/photo-1507525428034-b723cf961d3e";
@@ -207,7 +198,6 @@ export default function CreateEvent() {
       }
 
       if (eventToEdit) {
-        // Update existing event
         const { error } = await supabase
           .from("events")
           .update({
@@ -234,7 +224,6 @@ export default function CreateEvent() {
           setMessage("Event updated successfully!");
         }
       } else {
-        // Create new event
         const { error } = await supabase.from("events").insert([
           {
             title,
@@ -342,7 +331,6 @@ export default function CreateEvent() {
               )}
 
               <form onSubmit={handleSubmit} className="space-y-6 text-left">
-                {/* TITLE */}
                 <div>
                   <label className="block mb-2 font-semibold">
                     Event Title *
@@ -356,7 +344,6 @@ export default function CreateEvent() {
                   />
                 </div>
 
-                {/* CATEGORY & SKILL LEVEL */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block mb-2 font-semibold">
@@ -394,7 +381,6 @@ export default function CreateEvent() {
                   </div>
                 </div>
 
-                {/* DATE & TIME */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block mb-2 font-semibold">Date *</label>
@@ -416,7 +402,6 @@ export default function CreateEvent() {
                   </div>
                 </div>
 
-                {/* LOCATION WITH AUTOCOMPLETE */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <label className="block font-semibold">Location *</label>
@@ -436,18 +421,9 @@ export default function CreateEvent() {
 
                   {!category && (
                     <div className="p-3 bg-yellow-50 border border-yellow-200 rounded mb-3 text-sm text-yellow-800">
-                      ⚠️ Please select an event category first to see location
-                      options
+                      ⚠️ Please select an event category first
                     </div>
                   )}
-
-                  {category &&
-                    !getLocationConfigForCategory(category).showMapPicker && (
-                      <div className="p-3 bg-blue-50 border border-blue-200 rounded mb-3 text-sm text-blue-800">
-                        ℹ️ For "{category}" events, please enter your location
-                        manually
-                      </div>
-                    )}
 
                   {useMapPicker &&
                   category &&
@@ -473,7 +449,6 @@ export default function CreateEvent() {
                       onCoordinatesSelect={async (lat, lng) => {
                         setLatitude(lat);
                         setLongitude(lng);
-                        // Calculate MRT for manual entry too
                         const mrtInfo = await findNearestMRT(lat, lng);
                         if (mrtInfo) {
                           setNearestMRT(mrtInfo.name);
@@ -486,7 +461,6 @@ export default function CreateEvent() {
                   )}
                 </div>
 
-                {/* MRT INFO PREVIEW */}
                 {nearestMRT && nearestMRTDistance && (
                   <div className="p-3 bg-blue-50 border border-blue-200 rounded">
                     <p className="text-sm text-blue-800">
@@ -495,7 +469,6 @@ export default function CreateEvent() {
                   </div>
                 )}
 
-                {/* DESCRIPTION */}
                 <div>
                   <label className="block mb-2 font-semibold">
                     Description
@@ -509,7 +482,6 @@ export default function CreateEvent() {
                   />
                 </div>
 
-                {/* CAPACITY & IMAGE */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block mb-2 font-semibold">
@@ -562,5 +534,13 @@ export default function CreateEvent() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function CreateEventPage() {
+  return (
+    <Suspense fallback={<div className="p-6">Loading...</div>}>
+      <CreateEventContent />
+    </Suspense>
   );
 }

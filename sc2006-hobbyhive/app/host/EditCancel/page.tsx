@@ -1,21 +1,22 @@
 "use client";
-import React, { useState, useEffect } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import React, { useState, useEffect, Suspense } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import dynamic from "next/dynamic";
 import { getLocationConfigForCategory } from "@/app/config/categoryLocationMapping";
 import LocationAutocompleteInput from "../../components/LocationAutocompleteInput";
 import { findNearestMRT } from "@/app/utils/calculateNearestMRT";
+import { useSearchParams } from "next/navigation";
 
 const LocationMapPicker = dynamic(
   () => import("../../components/LocationMapPicker"),
   { ssr: false }
 );
 
-export default function EditCancelPage() {
+function EditCancelContent() {
   const searchParams = useSearchParams();
   const eventId = searchParams.get("event_id");
-  const mode = searchParams.get("mode"); // "edit" or "cancel"
+  const mode = searchParams.get("mode");
   const router = useRouter();
   const supabase = createClient();
 
@@ -73,7 +74,6 @@ export default function EditCancelPage() {
           capacity: data.capacity?.toString() || "",
         });
         
-        // Load existing coordinates and MRT info
         if (data.latitude) setLatitude(data.latitude);
         if (data.longitude) setLongitude(data.longitude);
         if (data.nearest_mrt_station) setNearestMRT(data.nearest_mrt_station);
@@ -82,7 +82,7 @@ export default function EditCancelPage() {
       setLoading(false);
     };
     fetchEvent();
-  }, [eventId]);
+  }, [eventId, supabase]);
 
   const handleLocationSelect = async (locationName: string, lat?: number, lng?: number) => {
     setForm({ ...form, location: locationName });
@@ -91,7 +91,6 @@ export default function EditCancelPage() {
       setLatitude(lat);
       setLongitude(lng);
       
-      // Calculate nearest MRT
       const mrtInfo = await findNearestMRT(lat, lng);
       if (mrtInfo) {
         setNearestMRT(mrtInfo.name);
@@ -184,7 +183,6 @@ export default function EditCancelPage() {
           </div>
         ) : (
           <form onSubmit={handleEdit} className="space-y-4 text-left">
-            {/* Title */}
             <div>
               <label className="block mb-2 font-semibold">Title *</label>
               <input
@@ -196,7 +194,6 @@ export default function EditCancelPage() {
               />
             </div>
 
-            {/* Category */}
             <div>
               <label className="block mb-2 font-semibold">Category *</label>
               <select
@@ -214,7 +211,6 @@ export default function EditCancelPage() {
               </select>
             </div>
 
-            {/* Description */}
             <div>
               <label className="block mb-2 font-semibold">Description</label>
               <textarea
@@ -225,7 +221,6 @@ export default function EditCancelPage() {
               />
             </div>
 
-            {/* Date & Time */}
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block mb-2 font-semibold">Date *</label>
@@ -250,7 +245,6 @@ export default function EditCancelPage() {
               </div>
             </div>
 
-            {/* Location */}
             <div>
               <div className="flex items-center justify-between mb-2">
                 <label className="block font-semibold">Location *</label>
@@ -270,16 +264,9 @@ export default function EditCancelPage() {
 
               {!form.category && (
                 <div className="p-3 bg-yellow-50 border border-yellow-200 rounded mb-3 text-sm text-yellow-800">
-                  ⚠️ Please select an event category first to see location options
+                  ⚠️ Please select a category first
                 </div>
               )}
-
-              {form.category &&
-                !getLocationConfigForCategory(form.category).showMapPicker && (
-                  <div className="p-3 bg-blue-50 border border-blue-200 rounded mb-3 text-sm text-blue-800">
-                    ℹ️ For "{form.category}" events, please enter your location manually
-                  </div>
-                )}
 
               {useMapPicker &&
               form.category &&
@@ -305,7 +292,6 @@ export default function EditCancelPage() {
                   onCoordinatesSelect={async (lat, lng) => {
                     setLatitude(lat);
                     setLongitude(lng);
-                    // Calculate MRT for manual entry too
                     const mrtInfo = await findNearestMRT(lat, lng);
                     if (mrtInfo) {
                       setNearestMRT(mrtInfo.name);
@@ -318,7 +304,6 @@ export default function EditCancelPage() {
               )}
             </div>
 
-            {/* MRT INFO PREVIEW */}
             {nearestMRT && nearestMRTDistance && (
               <div className="p-3 bg-blue-50 border border-blue-200 rounded">
                 <p className="text-sm text-blue-800">
@@ -327,7 +312,6 @@ export default function EditCancelPage() {
               </div>
             )}
 
-            {/* Capacity */}
             <div>
               <label className="block mb-2 font-semibold">Capacity *</label>
               <input
@@ -340,7 +324,6 @@ export default function EditCancelPage() {
               />
             </div>
 
-            {/* Buttons */}
             <div className="flex justify-center gap-4 mt-6">
               <button
                 type="button"
@@ -361,5 +344,13 @@ export default function EditCancelPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function EditCancelPage() {
+  return (
+    <Suspense fallback={<div className="p-6">Loading...</div>}>
+      <EditCancelContent />
+    </Suspense>
   );
 }
