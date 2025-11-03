@@ -132,24 +132,24 @@ function CreateEventContent() {
   }, [eventToEdit]);
 
   const handleLocationSelect = async (locationName: string, lat?: number, lng?: number) => {
-  setLocation(locationName);
-  
-  if (lat !== undefined && lng !== undefined) {
-    setLatitude(lat);
-    setLongitude(lng);
+    setLocation(locationName);
+    setErrors((prev) => ({ ...prev, location: false }));
 
-    try {
-      const mrtInfo = await findNearestMRT(lat, lng);
-      if (mrtInfo) {
-        setNearestMRT(mrtInfo.name);
-        setNearestMRTDistance(mrtInfo.distance);
+    if (lat !== undefined && lng !== undefined) {
+      setLatitude(lat);
+      setLongitude(lng);
+
+      try {
+        const mrtInfo = await findNearestMRT(lat, lng);
+        if (mrtInfo) {
+          setNearestMRT(mrtInfo.name);
+          setNearestMRTDistance(mrtInfo.distance);
+        }
+      } catch (error) {
+        console.error("Error finding nearest MRT:", error);
       }
-    } catch (error) {
-      console.error("Error finding nearest MRT:", error);
     }
-  }
-  setErrors((prev) => ({ ...prev, location: false }));
-};
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -444,10 +444,14 @@ function CreateEventContent() {
                       onCoordinatesSelect={async (lat, lng) => {
                         setLatitude(lat);
                         setLongitude(lng);
-                        const mrtInfo = await findNearestMRT(lat, lng);
-                        if (mrtInfo) {
-                          setNearestMRT(mrtInfo.name);
-                          setNearestMRTDistance(mrtInfo.distance);
+                        try {
+                          const mrtInfo = await findNearestMRT(lat, lng);
+                          if (mrtInfo) {
+                            setNearestMRT(mrtInfo.name);
+                            setNearestMRTDistance(mrtInfo.distance);
+                          }
+                        } catch (error) {
+                          console.error("Error finding nearest MRT:", error);
                         }
                       }}
                       disabled={!category}
