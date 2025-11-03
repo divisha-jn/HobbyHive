@@ -1,8 +1,9 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, } from 'react';
 import { MapPin, Calendar, Clock, Users, Heart, ChevronLeft, TrendingUp } from 'lucide-react';
-import { useRouter, useParams } from "next/navigation";
+import { useRouter, useParams,  } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
+import Link from 'next/link';
 
 
 interface EventData {
@@ -384,7 +385,7 @@ export default function EventListing() {
         {isAttending ? (
           /* this button to be implemented/linked to chat feature */
           <button className="w-full py-3 bg-gradient-to-r from-cyan-400 to-cyan-500 text-white font-semibold rounded-lg hover:from-cyan-500 hover:to-cyan-600 transition shadow-lg">
-            Go to Chat
+            <Link href="/groupchat">Go to Chat</Link>
           </button>
         ) : (
           <button 
