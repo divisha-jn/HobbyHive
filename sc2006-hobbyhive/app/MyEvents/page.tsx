@@ -32,13 +32,13 @@ export default function MyEvents() {
   const [attendingEvents, setAttendingEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  
+
   // Flag modal states
   const [showFlagModal, setShowFlagModal] = useState(false);
   const [flagReason, setFlagReason] = useState("");
   const [isFlagging, setIsFlagging] = useState(false);
   const [eventToFlag, setEventToFlag] = useState<Event | null>(null);
-  
+
   const supabase = createClient();
   const defaultAttendees = ["You"];
   const router = useRouter();
@@ -157,51 +157,48 @@ export default function MyEvents() {
     }
   };
 
- const handleFlagEvent = async () => {
-  if (!flagReason.trim()) {
-    alert("Please provide a reason for flagging this event.");
-    return;
-  }
-
-  if (!eventToFlag || !currentUserId) return;
-
-  setIsFlagging(true);
-
-  try {
-    const { error } = await supabase
-      .from("event_flags")
-      .insert([{
-        event_id: eventToFlag.id,
-        user_id: currentUserId,
-        reason: flagReason,
-      }]);
-
-    if (error) {
-      console.error("Error flagging event:", error);
-      
-      // Check for duplicate flag error
-      if (error.message.includes("duplicate key") || error.message.includes("unique constraint")) {
-        alert("You have already flagged this event.");
-      } else {
-        alert("Error flagging event: " + error.message);
-      }
-    } else {
-      // Update the local state to reflect flagged status
-      setAttendingEvents(prev => 
-        prev.map(e => e.id === eventToFlag.id ? { ...e, isFlagged: true } : e)
-      );
-      setShowFlagModal(false);
-      setFlagReason("");
-      setEventToFlag(null);
-      alert("Event flagged successfully. Thank you for your report.");
+  const handleFlagEvent = async () => {
+    if (!flagReason.trim()) {
+      alert("Please provide a reason for flagging this event.");
+      return;
     }
-  } catch (err) {
-    console.error("Unexpected error:", err);
-    alert("Error flagging event");
-  } finally {
-    setIsFlagging(false);
-  }
-};
+
+    if (!eventToFlag || !currentUserId) return;
+
+    setIsFlagging(true);
+
+    try {
+      const { error } = await supabase
+        .from("event_flags")
+        .insert([{
+          event_id: eventToFlag.id,
+          user_id: currentUserId,
+          reason: flagReason,
+        }]);
+
+      if (error) {
+        console.error("Error flagging event:", error);
+        if (error.message.includes("duplicate key") || error.message.includes("unique constraint")) {
+          alert("You have already flagged this event.");
+        } else {
+          alert("Error flagging event: " + error.message);
+        }
+      } else {
+        setAttendingEvents(prev =>
+          prev.map(e => e.id === eventToFlag.id ? { ...e, isFlagged: true } : e)
+        );
+        setShowFlagModal(false);
+        setFlagReason("");
+        setEventToFlag(null);
+        alert("Event flagged successfully. Thank you for your report.");
+      }
+    } catch (err) {
+      console.error("Unexpected error:", err);
+      alert("Error flagging event");
+    } finally {
+      setIsFlagging(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-r from-teal-400 to-cyan-500 relative">
@@ -210,6 +207,21 @@ export default function MyEvents() {
       </div>
       <Header />
 
+      {/* Summary counts */}
+      <div className="flex justify-center mt-8">
+        <div className="bg-white/80 rounded-lg shadow-md p-4 w-[700px] flex justify-around text-center">
+          <div>
+            <h3 className="text-lg font-semibold text-teal-700">Attending</h3>
+            <p className="text-2xl font-bold">{attendingEvents.length}</p>
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold text-teal-700">Hosting</h3>
+            <p className="text-2xl font-bold">{hostedEvents.length}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Tabs */}
       <div className="flex justify-center mt-6">
         <div className="bg-gray-100 rounded-md shadow-md flex w-[600px] justify-around">
           <button
@@ -235,53 +247,43 @@ export default function MyEvents() {
         </div>
       </div>
 
+      {/* Event Cards */}
       <div className="flex justify-center mt-6 flex-col items-center">
         {activeTab === "attending" ? (
-          attendingEvents.map((event, index) => (
-            <div
-              key={index}
-              className="bg-white shadow-md rounded-md p-4 w-[700px] flex items-center mb-4"
-            >
-              <img
-                src={event.image}
-                alt="Event"
-                className="w-28 h-20 rounded-lg object-cover mr-4"
-              />
-              <div className="flex-1">
-                <h2 className="font-semibold text-lg">{event.title}</h2>
-                <p>Date: {event.date}</p>
-                <p>Time: {event.time}</p>
-                <p>
-                  Hosted By: {event.hostName} |{" "}
-                  <Link href="/groupchat">
-                    <button className="border border-teal-400 text-teal-500 px-4 py-1 rounded hover:bg-teal-100 transition">
-                      Group Chat
-                    </button>
-                  </Link>
-                </p>
+          attendingEvents.length > 0 ? (
+            attendingEvents.map((event, index) => (
+              <div
+                key={index}
+                className="bg-white shadow-md rounded-md p-4 w-[700px] flex items-center mb-4"
+              >
+                <img
+                  src={event.image}
+                  alt="Event"
+                  className="w-28 h-20 rounded-lg object-cover mr-4"
+                />
+                <div className="flex-1">
+                  <h2 className="font-semibold text-lg">{event.title}</h2>
+                  <p>Date: {event.date}</p>
+                  <p>Time: {event.time}</p>
+                  <p>
+                    Hosted By: {event.hostName} |{" "}
+                    <Link href={`/groupchat/${event.id}`}>
+                      <button className="border border-teal-400 text-teal-500 px-4 py-1 rounded hover:bg-teal-100 transition">
+                        Group Chat
+                      </button>
+                    </Link>
+                  </p>
+                </div>
               </div>
-
-              {/* Flag Button - Only show for events NOT hosted by current user */}
-              {event.host !== currentUserId && (
-                <button
-                  onClick={() => {
-                    setEventToFlag(event);
-                    setShowFlagModal(true);
-                  }}
-                  disabled={event.isFlagged}
-                  className="ml-4 disabled:opacity-50"
-                  title={event.isFlagged ? "Already flagged" : "Flag this event"}
-                >
-                  <Flag className={`w-6 h-6 ${event.isFlagged ? 'text-red-500 fill-red-500' : 'text-gray-600'}`} />
-                </button>
-              )}
-            </div>
-          ))
+            ))
+          ) : (
+            <p className="text-white font-medium mt-6">No attending events yet.</p>
+          )
         ) : hostedEvents.length > 0 ? (
           hostedEvents.map((event) => (
             <div
               key={event.id}
-              className={`bg-white shadow-md rounded-md p-4 w-[700px] flex items-center mb-4 ${event.disabled ? "opacity-50 pointer-events-none" : ""}`}
+              className="bg-white shadow-md rounded-md p-4 w-[700px] flex items-center mb-4"
             >
               <img
                 src={event.image}
@@ -293,45 +295,9 @@ export default function MyEvents() {
                 <p>Date: {event.date}</p>
                 <p>Time: {event.time}</p>
                 <p>Status: <span className="font-semibold">{event.status}</span></p>
-                <p>
-                  Attendees: <b>{event.attendees}</b> |{" "}
-                  <button
-                    onClick={() => {
-                      setSelectedEvent(event);
-                      setShowAttendeeModal(true);
-                    }}
-                    className="text-teal-500 underline hover:text-teal-600 transition"
-                  >
-                    Attendee List
-                  </button>
-                </p>
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <Link href={`/host/EditCancel?event_id=${event.id}&mode=edit`}>
-                  <button
-                    className="bg-teal-400 text-white px-4 py-1 rounded hover:bg-teal-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled={event.status === "cancelled"}
-                  >
-                    Edit Details
-                  </button>
-                </Link>
-
-                <Link href="/groupchat">
-                  <button 
-                    className="border border-teal-400 text-teal-500 px-4 py-1 rounded hover:bg-teal-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled={event.status === "cancelled"}
-                  >
+                <Link href={`/groupchat/${event.id}`}>
+                  <button className="border border-teal-400 text-teal-500 px-4 py-1 rounded hover:bg-teal-100 transition">
                     Group Chat
-                  </button>
-                </Link>
-
-                <Link href={`/host/EditCancel?event_id=${event.id}&mode=cancel`}>
-                  <button
-                    className="border border-red-400 text-red-500 px-4 py-1 rounded hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled={event.status === "cancelled"}
-                  >
-                    Cancel Event
                   </button>
                 </Link>
               </div>
@@ -356,98 +322,6 @@ export default function MyEvents() {
           )}
         </div>
       </div>
-
-      {/* Flag Modal */}
-      {showFlagModal && eventToFlag && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md">
-            <h3 className="text-xl font-bold text-gray-800 mb-4">Flag Event</h3>
-            <p className="text-sm text-gray-600 mb-2">
-              <strong>Event:</strong> {eventToFlag.title}
-            </p>
-            <p className="text-sm text-gray-600 mb-4">
-              Please provide a reason for flagging this event. This will be reviewed by administrators.
-            </p>
-            
-            <textarea
-              value={flagReason}
-              onChange={(e) => setFlagReason(e.target.value)}
-              placeholder="Describe the issue (e.g., inappropriate content, spam, misleading information)..."
-              className="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-2 focus:ring-teal-500"
-              rows={4}
-            />
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => {
-                  setShowFlagModal(false);
-                  setFlagReason("");
-                  setEventToFlag(null);
-                }}
-                className="flex-1 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleFlagEvent}
-                disabled={isFlagging}
-                className="flex-1 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition disabled:opacity-50"
-              >
-                {isFlagging ? "Flagging..." : "Submit Flag"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Attendee List Modal */}
-      {showAttendeeModal && selectedEvent && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[80vh] overflow-hidden">
-            <div className="bg-gradient-to-r from-teal-400 to-cyan-500 p-4 text-white">
-              <div className="flex justify-between items-center">
-                <h2 className="text-xl font-bold">Attendee List</h2>
-                <button
-                  onClick={() => setShowAttendeeModal(false)}
-                  className="text-white hover:text-gray-200 text-2xl font-bold transition-colors"
-                >
-                  ×
-                </button>
-              </div>
-              <p className="text-teal-100 text-sm mt-1">
-                {selectedEvent.title}
-              </p>
-            </div>
-
-            <div className="p-4 max-h-96 overflow-y-auto">
-              <div className="space-y-3">
-                {(selectedEvent.attendeeNames || defaultAttendees).map((name, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded-lg transition-colors"
-                  >
-                    <span className="font-medium text-gray-800">
-                      {name}
-                    </span>
-                    {name === "Me" && (
-                      <span className="ml-auto bg-teal-100 text-teal-800 text-xs px-2 py-1 rounded-full font-medium">
-                        Host
-                      </span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="bg-gray-50 px-4 py-3 border-t border-gray-200">
-              <div className="flex justify-between text-sm text-gray-600">
-                <span>Total attendees: {(selectedEvent.attendeeNames || defaultAttendees).length}</span>
-                <span>Capacity: {selectedEvent.capacity || 0}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
