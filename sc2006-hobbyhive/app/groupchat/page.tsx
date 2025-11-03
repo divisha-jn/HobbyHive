@@ -17,6 +17,7 @@ const Page = () => {
   const [showMembers, setShowMembers] = useState(false);
   const [membersFetched, setMembersFetched] = useState(false);
   const [hostId, setHostId] = useState<string | null>(null);
+  const [showSidebar, setShowSidebar] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   
   
@@ -262,34 +263,42 @@ const Page = () => {
       {/* layout */}
       <div className="Chat p-0 gap-4 flex flex-row flex-1 overflow-hidden mt-2">
         {/* sidebar groups */}
-        <ul className="list rounded-box shadow-md p-5 w-1/4 overflow-y-auto border-2 bg-teal-500">
-          {groupChats.length > 0? (
-            groupChats.map((chat) => (
-              <li 
-                key={chat.chat_id} 
-                className={`flex items-center gap-3 py-6 rounded-xl cursor-pointer transition-all ${
-                  selectedChatId === chat.chat_id 
-                    ? 'bg-cyan-600 text-white' 
-                    : 'text-white hover:bg-teal-600'
-                }`}
-                onClick={() => handleSelectChat(chat)}
-              >
-                 <div className="w-10 h-10 flex items-center justify-center bg-white rounded-full font-bold">
-                    <img 
-                    src={chat.image_url}
-                    alt={chat.event_title}
-                    className="w-full h-full object-cover rounded-2xl"
-                    />
+        <button 
+          onClick={() => setShowSidebar(!showSidebar)} 
+          className=" btn btn-sm btn-accent"
+        >
+          {showSidebar ? "Close" : "Open"} 
+        </button>
+        {showSidebar && (
+          <ul className="list rounded-box shadow-md p-5 w-1/4 overflow-y-auto border-2 bg-teal-500">
+            
+            {groupChats.length > 0? (
+              groupChats.map((chat) => (
+                <li 
+                  key={chat.chat_id} 
+                  className={`flex items-center gap-3 py-6 rounded-xl cursor-pointer transition-all ${
+                    selectedChatId === chat.chat_id 
+                      ? 'bg-cyan-600 text-white' 
+                      : 'text-white hover:bg-teal-600'
+                  }`}
+                  onClick={() => handleSelectChat(chat)}
+                >
+                  <div className="w-10 h-10 flex items-center justify-center bg-white rounded-full font-bold">
+                      <img 
+                      src={chat.image_url}
+                      alt={chat.event_title}
+                      className="w-full h-full object-cover rounded-2xl"
+                      />
+                    </div>
+                  <div className="size-10 text-xl width-full break-words w-[150px]">
+                    {chat.event_title}
                   </div>
-                <div className="size-10 text-xl width-full break-words w-[150px]">
-                  {chat.event_title}
-                </div>
-              </li>
-            ))
+                </li>
+              ))
 
-          ):(<div className="text-white text-xl">No chats yet... <br></br>Join an event!</div>)}
-        </ul>
-
+            ):(<div className="text-white text-xl">No chats yet... <br></br>Join an event!</div>)}
+          </ul>
+        )}
         {/* chat room */}
         <div className="Chatroom border-2 border-base-400 p-0 flex flex-col flex-1 rounded-2xl h-full bg-white overflow-hidden">
           
