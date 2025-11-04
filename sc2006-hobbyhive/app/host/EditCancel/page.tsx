@@ -6,6 +6,8 @@ import dynamic from "next/dynamic";
 import { getLocationConfigForCategory } from "@/app/config/categoryLocationMapping";
 import LocationAutocompleteInput from "../../components/LocationAutocompleteInput";
 import { findNearestMRT } from "@/app/utils/calculateNearestMRT";
+import Header from "@/app/components/header";
+import Navbar from "@/app/components/Navbar";
 
 const LocationMapPicker = dynamic(
   () => import("../../components/LocationMapPicker"),
@@ -151,6 +153,11 @@ function EditCancelContent() {
   if (!event) return <p className="p-6">Event not found.</p>;
 
   return (
+    <div className="min-h-screen bg-gradient-to-r from-teal-400 to-cyan-500 relative">
+      <div className="absolute top-2 left-4 z-50">
+        <Navbar />
+      </div>
+      <Header />
     <div className="min-h-screen bg-gray-50 flex justify-center items-center p-6">
       <div className="bg-white p-8 rounded-xl shadow-lg w-full max-w-2xl">
         <h1 className="text-2xl font-bold mb-6 text-center">
@@ -342,6 +349,7 @@ function EditCancelContent() {
           </form>
         )}
       </div>
+    </div>
     </div>
   );
 }

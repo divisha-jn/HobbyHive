@@ -5,7 +5,6 @@ import Navbar from "../components/Navbar";
 import { createClient } from "@/utils/supabase/client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Flag } from "lucide-react";
 
 interface Event {
   id: string;
@@ -26,21 +25,12 @@ interface Event {
 
 export default function MyEvents() {
   const [activeTab, setActiveTab] = useState<"attending" | "hosting">("attending");
-  const [showAttendeeModal, setShowAttendeeModal] = useState(false);
-  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [hostedEvents, setHostedEvents] = useState<Event[]>([]);
   const [attendingEvents, setAttendingEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
-  // Flag modal states
-  const [showFlagModal, setShowFlagModal] = useState(false);
-  const [flagReason, setFlagReason] = useState("");
-  const [isFlagging, setIsFlagging] = useState(false);
-  const [eventToFlag, setEventToFlag] = useState<Event | null>(null);
-
   const supabase = createClient();
-  const defaultAttendees = ["You"];
   const router = useRouter();
 
   useEffect(() => {
@@ -78,7 +68,6 @@ export default function MyEvents() {
       const hosted = hostedData?.map((e: any) => ({
         ...e,
         image: e.image_url || fallbackImage,
-        disabled: false,
       })) || [];
 
       const statusOrder = { approved: 1, pending: 2, cancelled: 3 } as const;
@@ -132,20 +121,9 @@ export default function MyEvents() {
         .select("id, username")
         .in("id", hostIds);
 
-      // Check which events are already flagged by this user
-      const eventIds = attending.map(e => e.id);
-      const { data: flagData } = await supabase
-        .from("event_flags")
-        .select("event_id")
-        .eq("user_id", userId)
-        .in("event_id", eventIds);
-
-      const flaggedEventIds = new Set(flagData?.map(f => f.event_id) || []);
-
       const attendingWithHostName = attending.map(e => ({
         ...e,
         hostName: profiles?.find(p => p.id === e.host)?.username || "Unknown",
-        isFlagged: flaggedEventIds.has(e.id),
       }));
 
       setAttendingEvents(attendingWithHostName);
@@ -154,49 +132,6 @@ export default function MyEvents() {
       console.error("Failed to fetch events", err);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleFlagEvent = async () => {
-    if (!flagReason.trim()) {
-      alert("Please provide a reason for flagging this event.");
-      return;
-    }
-
-    if (!eventToFlag || !currentUserId) return;
-
-    setIsFlagging(true);
-
-    try {
-      const { error } = await supabase
-        .from("event_flags")
-        .insert([{
-          event_id: eventToFlag.id,
-          user_id: currentUserId,
-          reason: flagReason,
-        }]);
-
-      if (error) {
-        console.error("Error flagging event:", error);
-        if (error.message.includes("duplicate key") || error.message.includes("unique constraint")) {
-          alert("You have already flagged this event.");
-        } else {
-          alert("Error flagging event: " + error.message);
-        }
-      } else {
-        setAttendingEvents(prev =>
-          prev.map(e => e.id === eventToFlag.id ? { ...e, isFlagged: true } : e)
-        );
-        setShowFlagModal(false);
-        setFlagReason("");
-        setEventToFlag(null);
-        alert("Event flagged successfully. Thank you for your report.");
-      }
-    } catch (err) {
-      console.error("Unexpected error:", err);
-      alert("Error flagging event");
-    } finally {
-      setIsFlagging(false);
     }
   };
 
@@ -280,29 +215,64 @@ export default function MyEvents() {
             <p className="text-white font-medium mt-6">No attending events yet.</p>
           )
         ) : hostedEvents.length > 0 ? (
-          hostedEvents.map((event) => (
-            <div
-              key={event.id}
-              className="bg-white shadow-md rounded-md p-4 w-[700px] flex items-center mb-4"
-            >
-              <img
-                src={event.image}
-                alt={event.title}
-                className="w-28 h-20 rounded-lg object-cover mr-4"
-              />
-              <div className="flex-1">
-                <h2 className="font-semibold text-lg">{event.title}</h2>
-                <p>Date: {event.date}</p>
-                <p>Time: {event.time}</p>
-                <p>Status: <span className="font-semibold">{event.status}</span></p>
-                <Link href={`/groupchat/${event.id}`}>
-                  <button className="border border-teal-400 text-teal-500 px-4 py-1 rounded hover:bg-teal-100 transition">
-                    Group Chat
-                  </button>
-                </Link>
+          hostedEvents.map((event) => {
+            const isCancelled = event.status === "cancelled";
+            return (
+              <div
+                key={event.id}
+                className="bg-white shadow-md rounded-md p-4 w-[700px] flex items-center mb-4"
+              >
+                <img
+                  src={event.image}
+                  alt={event.title}
+                  className="w-28 h-20 rounded-lg object-cover mr-4"
+                />
+                <div className="flex-1">
+                  <h2 className="font-semibold text-lg">{event.title}</h2>
+                  <p>Date: {event.date}</p>
+                  <p>Time: {event.time}</p>
+                  <p>Status: <span className="font-semibold">{event.status}</span></p>
+
+                  <div className="flex space-x-2 mt-2">
+                    {/* Group Chat Button */}
+                    <Link href={`/groupchat/${event.id}`}>
+                      <button className="border border-teal-400 text-teal-500 px-4 py-1 rounded hover:bg-teal-100 transition">
+                        Group Chat
+                      </button>
+                    </Link>
+
+                    {/* Edit Details Button */}
+                    <Link href={`/host/EditCancel?event_id=${event.id}&mode=edit`}>
+                      <button
+                        disabled={isCancelled}
+                        className={`border px-4 py-1 rounded transition ${
+                          isCancelled
+                            ? "border-gray-300 text-gray-400 cursor-not-allowed"
+                            : "border-blue-400 text-blue-500 hover:bg-blue-100"
+                        }`}
+                      >
+                        Edit Details
+                      </button>
+                    </Link>
+
+                    {/* Cancel Event Button */}
+                    <Link href={`/host/EditCancel?event_id=${event.id}&mode=cancel`}>
+                      <button
+                        disabled={isCancelled}
+                        className={`border px-4 py-1 rounded transition ${
+                          isCancelled
+                            ? "border-gray-300 text-gray-400 cursor-not-allowed"
+                            : "border-red-400 text-red-500 hover:bg-red-100"
+                        }`}
+                      >
+                        Cancel Event
+                      </button>
+                    </Link>
+                  </div>
+                </div>
               </div>
-            </div>
-          ))
+            );
+          })
         ) : (
           <p className="text-white font-medium mt-6">No hosted events yet.</p>
         )}
