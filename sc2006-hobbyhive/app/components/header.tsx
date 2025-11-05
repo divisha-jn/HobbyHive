@@ -9,6 +9,7 @@ interface UserState {
   email: string | null;
   username?: string | null;
   profile_picture?: string | null;
+  role?: string | null;
 }
 const Header = () => {
   const router = useRouter();
@@ -16,22 +17,23 @@ const Header = () => {
   const [user, setUser] = useState<UserState | null>(null);
 
   const loadUser = async () => {
-    const currentUser = await getCurrentUser();
-    if (currentUser) {
-      try {
-        const profile = await fetchProfile(currentUser.id);
-        setUser({
-          email: currentUser.email ?? null,
-          username: profile.username ?? null,
-          profile_picture: profile.profile_picture ?? null,
-        });
-      } catch {
-        setUser({ email: currentUser.email ?? null });
-      }
-    } else {
-      setUser(null);
+  const currentUser = await getCurrentUser();
+  if (currentUser) {
+    try {
+      const profile = await fetchProfile(currentUser.id);
+      setUser({
+        email: currentUser.email ?? null,
+        username: profile.username ?? null,
+        profile_picture: profile.profile_picture ?? null,
+        role: profile.role ?? null,
+      });
+    } catch {
+      setUser({ email: currentUser.email ?? null });
     }
-  };
+  } else {
+    setUser(null);
+  }
+};
 
   useEffect(() => {
     loadUser();
@@ -70,9 +72,13 @@ const Header = () => {
               />
             )}
             <span className="text-gray-700 font-medium">
-            <Link href="/profile">
-              {user.username ?? user.email}
-            </Link>
+              {user.role === "user" ? (
+                <Link href="/profile">
+                  {user.username ?? user.email}
+                </Link>
+              ) : (
+                <span>{user.username ?? user.email}</span>
+              )}
             </span>
             <button
               onClick={handleLogout}
