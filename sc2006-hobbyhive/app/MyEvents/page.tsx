@@ -65,10 +65,11 @@ export default function MyEvents() {
 
       if (hostedError) throw hostedError;
 
-      const hosted = hostedData?.map((e: any) => ({
-        ...e,
-        image: e.image_url || fallbackImage,
-      })) || [];
+      const hosted =
+        hostedData?.map((e: any) => ({
+          ...e,
+          image: e.image_url || fallbackImage,
+        })) || [];
 
       const statusOrder = { approved: 1, pending: 2, cancelled: 3 } as const;
       hosted.sort((a, b) => {
@@ -101,7 +102,8 @@ export default function MyEvents() {
 
       if (participantError) throw participantError;
 
-      const validParticipants = participantData?.filter((p: any) => p.events !== null) || [];
+      const validParticipants =
+        participantData?.filter((p: any) => p.events !== null) || [];
 
       const attending = validParticipants.map((p: any) => ({
         id: p.event_id,
@@ -115,19 +117,19 @@ export default function MyEvents() {
         capacity: p.events.capacity,
       }));
 
-      const hostIds = attending.map(e => e.host);
+      const hostIds = attending.map((e) => e.host);
       const { data: profiles } = await supabase
         .from("profiles")
         .select("id, username")
         .in("id", hostIds);
 
-      const attendingWithHostName = attending.map(e => ({
+      const attendingWithHostName = attending.map((e) => ({
         ...e,
-        hostName: profiles?.find(p => p.id === e.host)?.username || "Unknown",
+        hostName:
+          profiles?.find((p) => p.id === e.host)?.username || "Unknown",
       }));
 
       setAttendingEvents(attendingWithHostName);
-
     } catch (err) {
       console.error("Failed to fetch events", err);
     } finally {
@@ -202,7 +204,7 @@ export default function MyEvents() {
                   <p>Time: {event.time}</p>
                   <p>
                     Hosted By: {event.hostName} |{" "}
-                    <Link href={`/groupchat/${event.id}`}>
+                    <Link href={`/groupchat?event_id=${event.id}`}>
                       <button className="border border-teal-400 text-teal-500 px-4 py-1 rounded hover:bg-teal-100 transition">
                         Group Chat
                       </button>
@@ -212,7 +214,9 @@ export default function MyEvents() {
               </div>
             ))
           ) : (
-            <p className="text-white font-medium mt-6">No attending events yet.</p>
+            <p className="text-white font-medium mt-6">
+              No attending events yet.
+            </p>
           )
         ) : hostedEvents.length > 0 ? (
           hostedEvents.map((event) => {
@@ -231,18 +235,22 @@ export default function MyEvents() {
                   <h2 className="font-semibold text-lg">{event.title}</h2>
                   <p>Date: {event.date}</p>
                   <p>Time: {event.time}</p>
-                  <p>Status: <span className="font-semibold">{event.status}</span></p>
+                  <p>
+                    Status: <span className="font-semibold">{event.status}</span>
+                  </p>
 
                   <div className="flex space-x-2 mt-2">
                     {/* Group Chat Button */}
-                    <Link href={`/groupchat/${event.id}`}>
+                    <Link href={`/groupchat?event_id=${event.id}`}>
                       <button className="border border-teal-400 text-teal-500 px-4 py-1 rounded hover:bg-teal-100 transition">
                         Group Chat
                       </button>
                     </Link>
 
                     {/* Edit Details Button */}
-                    <Link href={`/host/EditCancel?event_id=${event.id}&mode=edit`}>
+                    <Link
+                      href={`/host/EditCancel?event_id=${event.id}&mode=edit`}
+                    >
                       <button
                         disabled={isCancelled}
                         className={`border px-4 py-1 rounded transition ${
@@ -256,7 +264,9 @@ export default function MyEvents() {
                     </Link>
 
                     {/* Cancel Event Button */}
-                    <Link href={`/host/EditCancel?event_id=${event.id}&mode=cancel`}>
+                    <Link
+                      href={`/host/EditCancel?event_id=${event.id}&mode=cancel`}
+                    >
                       <button
                         disabled={isCancelled}
                         className={`border px-4 py-1 rounded transition ${
@@ -295,3 +305,4 @@ export default function MyEvents() {
     </div>
   );
 }
+
