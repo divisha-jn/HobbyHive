@@ -120,35 +120,74 @@ function EditCancelContent() {
   };
 
   const handleEdit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+  e.preventDefault();
 
-    const { error } = await supabase
-      .from("events")
-      .update({
-        title: form.title,
-        description: form.description,
-        date: form.date,
-        time: form.time,
-        location: form.location,
-        category: form.category,
-        latitude,
-        longitude,
-        nearest_mrt_station: nearestMRT,
-        nearest_mrt_distance: nearestMRTDistance,
-        capacity: Number(form.capacity),
-      })
-      .eq("id", eventId);
+  // ADD VALIDATION HERE
+  if (!form.title.trim()) {
+    alert("Please enter an event title.");
+    return;
+  }
 
-    setLoading(false);
+  if (!form.category) {
+    alert("Please select a category.");
+    return;
+  }
 
-    if (error) alert("Error updating event");
-    else {
-      alert("Event updated successfully!");
-      router.push("/MyEvents");
-    }
-  };
+  if (!form.date) {
+    alert("Please select a date.");
+    return;
+  }
 
+  if (!form.time) {
+    alert("Please select a time.");
+    return;
+  }
+
+  if (!form.location.trim()) {
+    alert("Please enter a location.");
+    return;
+  }
+
+  if (!form.capacity || Number(form.capacity) < 1) {
+    alert("Please enter a valid capacity (must be at least 1).");
+    return;
+  }
+
+  //ensure date/time not in the past
+  const selectedDateTime = new Date(`${form.date}T${form.time}`);
+  if (selectedDateTime < new Date()) {
+    alert("Event date and time cannot be in the past.");
+    return;
+  }
+
+  // Continue if all validation passes
+  setLoading(true);
+
+  const { error } = await supabase
+    .from("events")
+    .update({
+      title: form.title,
+      description: form.description,
+      date: form.date,
+      time: form.time,
+      location: form.location,
+      category: form.category,
+      latitude,
+      longitude,
+      nearest_mrt_station: nearestMRT,
+      nearest_mrt_distance: nearestMRTDistance,
+      capacity: Number(form.capacity),
+    })
+    .eq("id", eventId);
+
+  setLoading(false);
+
+  if (error) alert("Error updating event");
+  else {
+    alert("Event updated successfully!");
+    router.push("/MyEvents");
+  }
+};
   if (loading) return <p className="p-6">Loading...</p>;
   if (!event) return <p className="p-6">Event not found.</p>;
 
