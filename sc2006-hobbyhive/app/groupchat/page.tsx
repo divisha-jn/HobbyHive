@@ -1,12 +1,15 @@
 "use client";
-import React, { useEffect, useState, useRef , useMemo} from "react";
+import React, { useEffect, useState, useRef, useMemo } from "react";
 import { createClient } from "../../utils/supabase/client";
 import Navbar from "../components/Navbar";
-import Header from "../components/header"
-
+import Header from "../components/header";
+import { useSearchParams } from "next/navigation";
 
 const Page = () => {
   const supabase = useMemo(() => createClient(), []);
+  const searchParams = useSearchParams();
+  const initialEventId = searchParams.get("event_id");
+
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<any[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
@@ -18,9 +21,8 @@ const Page = () => {
   const [membersFetched, setMembersFetched] = useState(false);
   const [hostId, setHostId] = useState<string | null>(null);
   const [showSidebar, setShowSidebar] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
-  
-  
 
   // fetch current user
   useEffect(() => {
@@ -29,14 +31,14 @@ const Page = () => {
       if (data.user) setUserId(data.user.id);
     };
     fetchUser();
-  }, []);
+  }, [supabase]);
 
   //fetch user groupchats, title & img
   useEffect(() => {
-    
     if (!userId) return;
+    
     const fetchGroupChats = async () => {
-
+      setIsLoading(true);
       const {data, error} = await supabase
       .from ("group_chat_members")
       .select(`group_chats:chat_id (
@@ -52,26 +54,41 @@ const Page = () => {
       
     if (error) {
       console.log("Error fetching group chats: ", error.message);
+      setIsLoading(false);
       return;
     }
     
     const chats = (data as unknown as any[]).map((item) => {
       const event = item.group_chats?.events;
       return {
-        chat_id:item.group_chats.id,
+        chat_id: item.group_chats.id,
+        event_id: event?.id,
         event_title: event?.title ?? "unnamed Event",
-        image_url:event?.image_url ?? "/placeholder.png",
+        image_url: event?.image_url ?? "/placeholder.png",
       };
     });
 
     setGroupChats(chats);
+
+    // AUTO-SELECT CHAT BASED ON event_id FROM URL
+    if (initialEventId) {
+      const matchingChat = chats.find((c) => c.event_id === initialEventId);
+      if (matchingChat) {
+        console.log("Auto-selecting chat:", matchingChat.event_title);
+        setSelectedChatId(matchingChat.chat_id);
+        setSelectedChatDetails(matchingChat);
+      } else {
+        console.log("No matching chat found for event_id:", initialEventId);
+      }
+    }
+    
+    setIsLoading(false);
     }
     fetchGroupChats();
-  }, [userId])
+  }, [userId, initialEventId, supabase])
  
   //fetch groupchatmembers
   const fetchMembers = async () => {
-  
     if(!selectedChatId) return;
     const {data, error} = await supabase
     .from("group_chat_members")
@@ -92,23 +109,20 @@ const Page = () => {
     setGroupMembers([]);
     setMembersFetched(false);
     setShowMembers(false);
-
   }, [selectedChatId])
 
   useEffect(() => {
-    
     if(showMembers && selectedChatId && !membersFetched) {
       fetchMembers();
       setMembersFetched(true);
     }
-},[showMembers,selectedChatId]);
+  },[showMembers,selectedChatId]);
 
   // fetch existing messages
   useEffect(() => {
     if (!selectedChatId) return;
     setMessages([]);
     const fetchMsgs = async () => {
-
       const { data, error } = await supabase
         .from("messages")
         .select("id, chat_id, sender_id, content, created_at, profiles:sender_id(username)")
@@ -120,10 +134,10 @@ const Page = () => {
         } else if (data) {
           setMessages(data);  
         }
-  };
+    };
 
-  fetchMsgs();
-}, [selectedChatId]);
+    fetchMsgs();
+  }, [selectedChatId]);
 
   //fetch host id
   useEffect(() => {
@@ -144,13 +158,10 @@ const Page = () => {
         }
 
         setHostId((data as any)?.events?.host_id ?? null);
-      
     };
 
     fetchHost();
-
   }, [selectedChatId])
-
 
   //real time updates
   useEffect(() => {
@@ -173,10 +184,8 @@ const Page = () => {
 
     return () => {
       supabase.removeChannel(channel);
-      
     };
-  }, [selectedChatId]);
-
+  }, [selectedChatId, supabase]);
 
   // auto-scroll when messages update
   useEffect(() => {
@@ -204,7 +213,6 @@ const Page = () => {
     ]);
     setInput("");
     if (error) console.error("Insert error:", error.message, error.details, error.hint);
-
   };
   
   const handleLeave = async () => {
@@ -220,9 +228,7 @@ const Page = () => {
       console.error("error leaving group: ", error.message);
     } else {
       setGroupMembers((prev) => prev.filter((m) => m.id !== userId));
-
       setGroupChats((prev) => prev.filter((c) => c.chat_id !== selectedChatId));
-
       setSelectedChatId(null);
       setSelectedChatDetails(null);
     } 
@@ -242,15 +248,27 @@ const Page = () => {
     } else {
       setGroupMembers((prev) => prev.filter((m) => m.user_id !== memberId));
     }
-
   }
 
   const handleSelectChat = (chat: any) => {
     setSelectedChatId(chat.chat_id);
     setSelectedChatDetails(chat);
   };
-    
-  
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-white flex flex-col">
+        <div className="absolute top-2 left-4 z-50">
+          <Navbar />
+        </div>
+        <Header />
+        <div className="flex-1 flex items-center justify-center">
+          <p className="text-gray-500">Loading chats...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen flex flex-col p-2 bg-white">
@@ -265,13 +283,12 @@ const Page = () => {
         {/* sidebar groups */}
         <button 
           onClick={() => setShowSidebar(!showSidebar)} 
-          className=" btn btn-sm btn-accent"
+          className="btn btn-sm btn-accent"
         >
           {showSidebar ? "Close" : "Open"} 
         </button>
         {showSidebar && (
           <ul className="list rounded-box shadow-md p-5 w-1/4 overflow-y-auto border-2 bg-teal-500">
-            
             {groupChats.length > 0? (
               groupChats.map((chat) => (
                 <li 
@@ -295,13 +312,12 @@ const Page = () => {
                   </div>
                 </li>
               ))
-
             ):(<div className="text-white text-xl">No chats yet... <br></br>Join an event!</div>)}
           </ul>
         )}
+        
         {/* chat room */}
         <div className="Chatroom border-2 border-base-400 p-0 flex flex-col flex-1 rounded-2xl h-full bg-white overflow-hidden">
-          
           {/* HEADER WITH EVENT DETAILS */}
           {selectedChatDetails && (
             <div className="bg-gradient-to-r from-teal-500 to-cyan-500 p-4 border-b-2 border-teal-200 flex items-center justify-between">
@@ -313,6 +329,9 @@ const Page = () => {
                 />
                 <div>
                   <h2 className="text-xl font-bold text-white">{selectedChatDetails.event_title}</h2>
+                  <p className="text-teal-100 text-sm">
+                    {initialEventId && "Opened from MyEvents"}
+                  </p>
                 </div>
               </div>
               <button
@@ -326,39 +345,37 @@ const Page = () => {
 
           {selectedChatId ? (
             <>
-                  {/* show member list */}
-                  {showMembers && (
-                    <div className="fixed bottom-77 right-8 w-64 bg-base-200 rounded-lg p-3 shadow-lg z-10">
-                      {groupMembers.length > 0 ? (
-                        groupMembers.map((m, i) => (
-                          <div key={i} className="flex items-center justify-between bg-base-300 rounded-lg p-2 mb-2">
-                            <span className="px-5">{m.profiles?.username}</span>
-                          
-                            {m.user_id === userId && userId !== hostId && (
-                              <button onClick={() => handleLeave()}
-                              className="btn btn-xs btn-error">
-                                leave
-                              </button>
-                            )}
+              {/* show member list */}
+              {showMembers && (
+                <div className="fixed bottom-77 right-8 w-64 bg-base-200 rounded-lg p-3 shadow-lg z-10">
+                  {groupMembers.length > 0 ? (
+                    groupMembers.map((m, i) => (
+                      <div key={i} className="flex items-center justify-between bg-base-300 rounded-lg p-2 mb-2">
+                        <span className="px-5">{m.profiles?.username}</span>
+                      
+                        {m.user_id === userId && userId !== hostId && (
+                          <button onClick={() => handleLeave()}
+                          className="btn btn-xs btn-error">
+                            leave
+                          </button>
+                        )}
 
-                            {hostId === userId && m.user_id !== hostId && (
-                              <button
-                                 onClick={ () => handleRemove(m.user_id)}
-                                 className="btn btn-xs btn-error">
-                                  remove
-                                 </button>
-                            )}
-                            
-                          </div>
-                        ))
-                      ) : (
-                        <p className="text-gray-400 italic text-sm">
-                          {membersFetched ? "No members found..." : "Loading members..."}
-                        </p>
-                      )}
-                    </div>
+                        {hostId === userId && m.user_id !== hostId && (
+                          <button
+                             onClick={ () => handleRemove(m.user_id)}
+                             className="btn btn-xs btn-error">
+                              remove
+                             </button>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-gray-400 italic text-sm">
+                      {membersFetched ? "No members found..." : "Loading members..."}
+                    </p>
                   )}
-                
+                </div>
+              )}
               
               <div className="flex-1 p-2 space-y-4 rounded-lg overflow-y-auto text-xl">
                 {messages.length > 0 ? (
@@ -397,7 +414,14 @@ const Page = () => {
             </>
           ) : (
             <div className="flex items-center justify-center h-full text-gray-400 text-xl">
-              <p>Select a chat to start messaging</p>
+              {initialEventId ? (
+                <div className="text-center">
+                  <p>Chat not found for this event</p>
+                  <p className="text-sm mt-2">You may not be a member of this chat yet</p>
+                </div>
+              ) : (
+                <p>Select a chat to start messaging</p>
+              )}
             </div>
           )}
         </div>
