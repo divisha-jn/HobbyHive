@@ -57,23 +57,29 @@ export async function fetchMembers(chatId: string): Promise<MemberRow[]> {
   const supabase = createClient();
   const { data, error } = await supabase
     .from("group_chat_members")
-    .select("user_id, profiles:user_id(username)")
+    .select(`
+      user_id,
+      profiles:profiles!inner(username)
+    `)
     .eq("chat_id", chatId);
 
   if (error) throw new Error(error.message);
 
   const rows: MemberRow[] = (data ?? []).map((item: any) => {
-    const profArr = Array.isArray(item.profiles) ? item.profiles : [];
-    const first = profArr[0] ?? null;
+    const prof =
+      Array.isArray(item.profiles) && item.profiles.length > 0
+        ? item.profiles[0]
+        : item.profiles ?? null;
 
     return {
       user_id: String(item.user_id),
-      profiles: first ? { username: first.username ?? null } : null,
+      profiles: prof ? { username: prof.username ?? null } : null,
     };
   });
 
   return rows;
 }
+
 
 // user leaves groupchat
 export async function leaveGroup(chatId: string, userId: string): Promise<void> {

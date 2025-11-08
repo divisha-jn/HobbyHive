@@ -1,433 +1,63 @@
 "use client";
-import React, { useEffect, useState, useRef, useMemo } from "react";
-import { createClient } from "../../utils/supabase/client";
+
+import React, { useEffect, useMemo, useState } from "react";
 import Navbar from "../components/Navbar";
 import Header from "../components/header";
-import { useSearchParams } from "next/navigation";
+import Sidebar from "./components/Sidebar";
+import ChatRoom from "./components/Chatroom";
 
-const Page = () => {
-  const supabase = useMemo(() => createClient(), []);
-  const searchParams = useSearchParams();
-  const initialEventId = searchParams.get("event_id");
+import { getCurrentUserId } from "./model/userModel";
+import { ChatController } from "./controllers/chatController";
+import type { GroupChatListItem } from "./model/groupchatModel";
 
-  const [input, setInput] = useState("");
-  const [messages, setMessages] = useState<any[]>([]);
+export default function Page() {
   const [userId, setUserId] = useState<string | null>(null);
-  const [groupChats, setGroupChats] = useState<any[]>([]);
-  const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
-  const [selectedChatDetails, setSelectedChatDetails] = useState<any>(null);
-  const [groupMembers, setGroupMembers] = useState<any[]>([]);
-  const [showMembers, setShowMembers] = useState(false);
-  const [membersFetched, setMembersFetched] = useState(false);
-  const [hostId, setHostId] = useState<string | null>(null);
+  const [groupChats, setGroupChats] = useState<GroupChatListItem[]>([]);
+  const [selectedChat, setSelectedChat] = useState<GroupChatListItem | null>(null);
   const [showSidebar, setShowSidebar] = useState(true);
-  const [isLoading, setIsLoading] = useState(true);
-  const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
-  // fetch current user
+  // get current user 
   useEffect(() => {
-    const fetchUser = async () => {
-      const { data } = await supabase.auth.getUser();
-      if (data.user) setUserId(data.user.id);
-    };
-    fetchUser();
-  }, [supabase]);
+    getCurrentUserId().then(setUserId).catch(console.error);
+  }, []);
 
-  //fetch user groupchats, title & img
+  // load user's group chats
   useEffect(() => {
     if (!userId) return;
-    
-    const fetchGroupChats = async () => {
-      setIsLoading(true);
-      const {data, error} = await supabase
-      .from ("group_chat_members")
-      .select(`group_chats:chat_id (
-        id,
-        events:event_id (
-          id,
-          title,
-          image_url
-        )
-      )
-    `)
-      .eq("user_id",userId);
-      
-    if (error) {
-      console.log("Error fetching group chats: ", error.message);
-      setIsLoading(false);
-      return;
-    }
-    
-    const chats = (data as unknown as any[]).map((item) => {
-      const event = item.group_chats?.events;
-      return {
-        chat_id: item.group_chats.id,
-        event_id: event?.id,
-        event_title: event?.title ?? "unnamed Event",
-        image_url: event?.image_url ?? "/placeholder.png",
-      };
-    });
-
-    setGroupChats(chats);
-
-    // AUTO-SELECT CHAT BASED ON event_id FROM URL
-    if (initialEventId) {
-      const matchingChat = chats.find((c) => c.event_id === initialEventId);
-      if (matchingChat) {
-        console.log("Auto-selecting chat:", matchingChat.event_title);
-        setSelectedChatId(matchingChat.chat_id);
-        setSelectedChatDetails(matchingChat);
-      } else {
-        console.log("No matching chat found for event_id:", initialEventId);
-      }
-    }
-    
-    setIsLoading(false);
-    }
-    fetchGroupChats();
-  }, [userId, initialEventId, supabase])
- 
-  //fetch groupchatmembers
-  const fetchMembers = async () => {
-    if(!selectedChatId) return;
-    const {data, error} = await supabase
-    .from("group_chat_members")
-    .select("user_id, profiles:user_id(username)")
-    .eq("chat_id",selectedChatId);
-
-    if (error) {
-      console.error("error fetching members", error.message);
-      return;
-    }
-    console.log("fetched members:", JSON.stringify(data, null, 2));
-    console.log("current user:", userId);
-    setGroupMembers(data || []);
-  };
-
-  //reset 
-  useEffect(() => {
-    setGroupMembers([]);
-    setMembersFetched(false);
-    setShowMembers(false);
-  }, [selectedChatId])
-
-  useEffect(() => {
-    if(showMembers && selectedChatId && !membersFetched) {
-      fetchMembers();
-      setMembersFetched(true);
-    }
-  },[showMembers,selectedChatId]);
-
-  // fetch existing messages
-  useEffect(() => {
-    if (!selectedChatId) return;
-    setMessages([]);
-    const fetchMsgs = async () => {
-      const { data, error } = await supabase
-        .from("messages")
-        .select("id, chat_id, sender_id, content, created_at, profiles:sender_id(username)")
-        .eq("chat_id", selectedChatId)
-        .order("created_at", { ascending: true });
-
-        if (error) {
-          console.error("Fetch error:", error.message);
-        } else if (data) {
-          setMessages(data);  
-        }
-    };
-
-    fetchMsgs();
-  }, [selectedChatId]);
-
-  //fetch host id
-  useEffect(() => {
-    setHostId(null);
-    if (!selectedChatId) return;
-
-    const fetchHost = async () => {
-      const { data, error } = await supabase
-      .from("group_chats")
-      .select(`id,
-        events(host_id)`)
-        .eq("id",selectedChatId)
-        .single();
-
-        if (error) {
-          console.log("error fetching host: ",error.message);
-          return;
-        }
-
-        setHostId((data as any)?.events?.host_id ?? null);
-    };
-
-    fetchHost();
-  }, [selectedChatId])
-
-  //real time updates
-  useEffect(() => {
-    if (!selectedChatId) return;
-    const channel = supabase
-    .channel(`chat_${selectedChatId}`)
-    .on("postgres_changes",
-      {event:"INSERT", schema: "public", table: "messages", filter: `chat_id=eq.${selectedChatId}`},
-      async (payload) => {
-        const {data:profile} = await supabase
-        .from("profiles")
-        .select("username") 
-        .eq("id",payload.new.sender_id)
-        .single();
-
-        setMessages((prev) => [...prev, {...payload.new, profiles: profile}]);
-      }
-    )
-    .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [selectedChatId, supabase]);
-
-  // auto-scroll when messages update
-  useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: "instant" });
-    }
-  }, [messages]);
-
-  // send message
-  const handleSend = async () => {
-    if (!input.trim()) return;
-
-    const { data } = await supabase.auth.getUser();
-    const user = data.user;
-    if (!user) return;
-
-    const USER_ID = user.id;
-
-    const { error } = await supabase.from("messages").insert([
-      {
-        chat_id: selectedChatId,
-        sender_id: USER_ID,
-        content: input,
-      },
-    ]);
-    setInput("");
-    if (error) console.error("Insert error:", error.message, error.details, error.hint);
-  };
-  
-  const handleLeave = async () => {
-    if (!selectedChatId || !userId) return;
-    
-    const { error } = await supabase
-    .from("group_chat_members")
-    .delete()
-    .eq("chat_id",selectedChatId)
-    .eq("user_id", userId);
-
-    if (error) {
-      console.error("error leaving group: ", error.message);
-    } else {
-      setGroupMembers((prev) => prev.filter((m) => m.id !== userId));
-      setGroupChats((prev) => prev.filter((c) => c.chat_id !== selectedChatId));
-      setSelectedChatId(null);
-      setSelectedChatDetails(null);
-    } 
-  };
-  
-  const handleRemove = async (memberId: string) => {
-    if (!selectedChatId) return;
-
-    const { error } = await supabase
-    .from("group_chat_members")
-    .delete()
-    .eq("chat_id", selectedChatId)
-    .eq("user_id", memberId);
-
-    if (error) {
-      console.error("error removing member: ", error.message);
-    } else {
-      setGroupMembers((prev) => prev.filter((m) => m.user_id !== memberId));
-    }
-  }
-
-  const handleSelectChat = (chat: any) => {
-    setSelectedChatId(chat.chat_id);
-    setSelectedChatDetails(chat);
-  };
-
-  // Show loading state
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-white flex flex-col">
-        <div className="absolute top-2 left-4 z-50">
-          <Navbar />
-        </div>
-        <Header />
-        <div className="flex-1 flex items-center justify-center">
-          <p className="text-gray-500">Loading chats...</p>
-        </div>
-      </div>
-    );
-  }
+    ChatController.fetchGroupChats(userId)
+      .then((chats) => {
+        setGroupChats(chats);
+      })
+      .catch((e) => console.error("Fetch group chats error:", e));
+  }, [userId]);
 
   return (
     <div className="h-screen flex flex-col p-2 bg-white">
-      {/* header */}  
+      {/* header */}
       <div className="absolute top-2 left-4 z-50">
         <Navbar />
       </div>
-      <Header/>
+      <Header />
 
       {/* layout */}
       <div className="Chat p-0 gap-4 flex flex-row flex-1 overflow-hidden mt-2">
-        {/* sidebar groups */}
-        <button 
-          onClick={() => setShowSidebar(!showSidebar)} 
-          className="btn btn-sm btn-accent"
-        >
-          {showSidebar ? "Close" : "Open"} 
-        </button>
-        {showSidebar && (
-          <ul className="list rounded-box shadow-md p-5 w-1/4 overflow-y-auto border-2 bg-teal-500">
-            {groupChats.length > 0? (
-              groupChats.map((chat) => (
-                <li 
-                  key={chat.chat_id} 
-                  className={`flex items-center gap-3 py-6 rounded-xl cursor-pointer transition-all ${
-                    selectedChatId === chat.chat_id 
-                      ? 'bg-cyan-600 text-white' 
-                      : 'text-white hover:bg-teal-600'
-                  }`}
-                  onClick={() => handleSelectChat(chat)}
-                >
-                  <div className="w-10 h-10 flex items-center justify-center bg-white rounded-full font-bold">
-                      <img 
-                      src={chat.image_url}
-                      alt={chat.event_title}
-                      className="w-full h-full object-cover rounded-2xl"
-                      />
-                    </div>
-                  <div className="size-10 text-xl width-full break-words w-[150px]">
-                    {chat.event_title}
-                  </div>
-                </li>
-              ))
-            ):(<div className="text-white text-xl">No chats yet... <br></br>Join an event!</div>)}
-          </ul>
-        )}
-        
-        {/* chat room */}
-        <div className="Chatroom border-2 border-base-400 p-0 flex flex-col flex-1 rounded-2xl h-full bg-white overflow-hidden">
-          {/* HEADER WITH EVENT DETAILS */}
-          {selectedChatDetails && (
-            <div className="bg-gradient-to-r from-teal-500 to-cyan-500 p-4 border-b-2 border-teal-200 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <img 
-                  src={selectedChatDetails.image_url}
-                  alt={selectedChatDetails.event_title}
-                  className="w-12 h-12 rounded-lg object-cover"
-                />
-                <div>
-                  <h2 className="text-xl font-bold text-white">{selectedChatDetails.event_title}</h2>
-                  <p className="text-teal-100 text-sm">
-                    {initialEventId && "Opened from MyEvents"}
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setShowMembers(!showMembers)}
-                className="btn btn-sm btn-outline text-white border-white hover:bg-white hover:text-teal-500 rounded-xl"
-              >
-                👥 {showMembers ? "Hide" : "View"} Members
-              </button>
-            </div>
-          )}
+        {/* Sidebar */}
+        <Sidebar
+          chats={groupChats}
+          onSelectChat={setSelectedChat}
+          selectedChatId={selectedChat?.chat_id ?? null}
+          show={showSidebar}
+          toggle={() => setShowSidebar((s) => !s)}
+        />
 
-          {selectedChatId ? (
-            <>
-              {/* show member list */}
-              {showMembers && (
-                <div className="fixed bottom-77 right-8 w-64 bg-base-200 rounded-lg p-3 shadow-lg z-10">
-                  {groupMembers.length > 0 ? (
-                    groupMembers.map((m, i) => (
-                      <div key={i} className="flex items-center justify-between bg-base-300 rounded-lg p-2 mb-2">
-                        <span className="px-5">{m.profiles?.username}</span>
-                      
-                        {m.user_id === userId && userId !== hostId && (
-                          <button onClick={() => handleLeave()}
-                          className="btn btn-xs btn-error">
-                            leave
-                          </button>
-                        )}
-
-                        {hostId === userId && m.user_id !== hostId && (
-                          <button
-                             onClick={ () => handleRemove(m.user_id)}
-                             className="btn btn-xs btn-error">
-                              remove
-                             </button>
-                        )}
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-gray-400 italic text-sm">
-                      {membersFetched ? "No members found..." : "Loading members..."}
-                    </p>
-                  )}
-                </div>
-              )}
-              
-              <div className="flex-1 p-2 space-y-4 rounded-lg overflow-y-auto text-xl">
-                {messages.length > 0 ? (
-                  messages.map((msg, idx) => (
-                    <div key={idx}>
-                      <div className={`${msg.sender_id === userId ? "chat chat-start" : "chat chat-end"}`}>
-                        <div className="chat chat-header">{msg.profiles?.username}</div>
-                        <p className="chat-bubble">{msg.content}</p>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-gray-500 text-center">No messages yet...</p>
-                )}
-                <div ref={messagesEndRef} />
-              </div>
-
-              {/* input bar */}
-              <div className="flex p-2 gap-4 items-end w-full text-black border-t border-gray-300">
-                <input
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      if (input.trim() !== "") handleSend();
-                    }
-                  }}
-                  placeholder="Enter your message..."
-                  className="input input-bordered w-full"
-                />
-                <button onClick={handleSend} className="btn btn-accent rounded-xl font-bold">
-                  send
-                </button>
-              </div>
-            </>
-          ) : (
-            <div className="flex items-center justify-center h-full text-gray-400 text-xl">
-              {initialEventId ? (
-                <div className="text-center">
-                  <p>Chat not found for this event</p>
-                  <p className="text-sm mt-2">You may not be a member of this chat yet</p>
-                </div>
-              ) : (
-                <p>Select a chat to start messaging</p>
-              )}
-            </div>
-          )}
-        </div>
+        {/* Chat room */}
+        <ChatRoom
+          selectedChat={selectedChat}
+          userId={userId}
+          setGroupChats={setGroupChats}
+          setSelectedChat={setSelectedChat}
+        />
       </div>
     </div>
   );
-};
-
-export default Page;
+}
