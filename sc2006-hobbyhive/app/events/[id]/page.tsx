@@ -285,7 +285,7 @@ export default function EventListing() {
             </div>
           </div>
 
-          {/* MRT Station - NEW */}
+                    {/* MRT Station - NEW */}
           {event.nearest_mrt_station && (
             <div className="flex items-center gap-3 text-gray-700">
               <div className="w-5 h-5 text-cyan-500 flex-shrink-0 flex items-center justify-center text-lg">
@@ -293,10 +293,11 @@ export default function EventListing() {
               </div>
               <div>
                 <p className="text-sm text-gray-500">Nearest MRT</p>
-                <p className="font-semibold">{event.nearest_mrt_station} ({event.nearest_mrt_distance} km away)</p>
+                <p className="font-semibold">{event.nearest_mrt_station}</p>
               </div>
             </div>
           )}
+
 
           <div className="flex items-center gap-3 text-gray-700">
             <TrendingUp className="w-5 h-5 text-cyan-500 flex-shrink-0" />

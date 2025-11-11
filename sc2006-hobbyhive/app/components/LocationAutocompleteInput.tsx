@@ -5,10 +5,11 @@ import React, { useState, useRef, useEffect } from "react";
 interface LocationAutocompleteInputProps {
   location: string;
   setLocation: (location: string) => void;
-  onCoordinatesSelect?: (lat: number, lng: number) => void; // NEW
+  onCoordinatesSelect?: (lat: number, lng: number, locationName: string) => void; 
   disabled?: boolean;
   className?: string;
 }
+
 
 export default function LocationAutocompleteInput({
   location,
@@ -63,16 +64,16 @@ export default function LocationAutocompleteInput({
   };
 
   const handleSuggestionClick = (suggestion: any) => {
-    setLocation(suggestion.name);
-    
-    // Call the coordinates callback if provided - NEW
-    if (onCoordinatesSelect) {
-      onCoordinatesSelect(suggestion.latitude, suggestion.longitude);
-    }
-    
-    setSuggestions([]);
-    setShowSuggestions(false);
-  };
+  setLocation(suggestion.name);
+  
+  if (onCoordinatesSelect) {
+    onCoordinatesSelect(suggestion.latitude, suggestion.longitude, suggestion.name);
+  }
+  
+  setSuggestions([]);
+  setShowSuggestions(false);
+};
+
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

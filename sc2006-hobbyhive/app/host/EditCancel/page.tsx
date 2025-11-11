@@ -1,13 +1,13 @@
 "use client";
 import React, { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { createClient } from "@/utils/supabase/client";
 import dynamic from "next/dynamic";
 import { getLocationConfigForCategory } from "@/app/config/categoryLocationMapping";
 import LocationAutocompleteInput from "@/app/components/LocationAutocompleteInput";
-import { findNearestMRT } from "@/app/utils/calculateNearestMRT";
 import Header from "@/app/components/header";
 import Navbar from "@/app/components/Navbar";
+import { EventController } from "@/app/host/controllers/EventController";
+import { EventModel } from "@/app/host/models/EventModel";
 
 const LocationMapPicker = dynamic(
   () => import("@/app/components/LocationMapPicker"),
@@ -19,7 +19,10 @@ function EditCancelContent() {
   const eventId = searchParams.get("event_id");
   const mode = searchParams.get("mode");
   const router = useRouter();
-  const supabase = createClient();
+
+  // Initialize MVC
+  const eventModel = new EventModel();
+  const eventController = new EventController(eventModel);
 
   const [event, setEvent] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -33,6 +36,7 @@ function EditCancelContent() {
     location: "",
     category: "",
     capacity: "",
+    skillLevel: "",
   });
 
   const [latitude, setLatitude] = useState<number | null>(null);
@@ -54,14 +58,12 @@ function EditCancelContent() {
     "Other",
   ];
 
+  // Fetch event data
   useEffect(() => {
     const fetchEvent = async () => {
       if (!eventId) return;
-      const { data, error } = await supabase
-        .from("events")
-        .select("*")
-        .eq("id", eventId)
-        .single();
+
+      const { data, error } = await eventController.fetchEventById(eventId);
 
       if (!error && data) {
         setEvent(data);
@@ -73,6 +75,7 @@ function EditCancelContent() {
           location: data.location || "",
           category: data.category || "",
           capacity: data.capacity?.toString() || "",
+          skillLevel: data.skill_level || "",
         });
 
         if (data.latitude) setLatitude(data.latitude);
@@ -83,8 +86,9 @@ function EditCancelContent() {
       setLoading(false);
     };
     fetchEvent();
-  }, [eventId, supabase]);
+  }, [eventId]);
 
+  // Handle location selection with MRT calculation
   const handleLocationSelect = async (locationName: string, lat?: number, lng?: number) => {
     setForm({ ...form, location: locationName });
 
@@ -92,7 +96,7 @@ function EditCancelContent() {
       setLatitude(lat);
       setLongitude(lng);
 
-      const mrtInfo = await findNearestMRT(lat, lng);
+      const mrtInfo = await eventController.calculateNearestMRT(lat, lng);
       if (mrtInfo) {
         setNearestMRT(mrtInfo.name);
         setNearestMRTDistance(mrtInfo.distance);
@@ -100,90 +104,55 @@ function EditCancelContent() {
     }
   };
 
+  // Handle cancel event
   const handleCancel = async () => {
     const confirmCancel = confirm("Are you sure you want to cancel this event?");
     if (!confirmCancel) return;
 
     setLoading(true);
-    const { error } = await supabase
-      .from("events")
-      .update({ status: "cancelled" })
-      .eq("id", eventId);
-
+    const result = await eventController.cancelEvent(eventId!);
     setLoading(false);
 
-    if (error) alert("Error cancelling event");
-    else {
+    if (result.error) {
+      alert("Error cancelling event");
+    } else {
       alert("Event cancelled successfully!");
       router.push("/MyEvents");
     }
   };
 
+  // Handle edit event
   const handleEdit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // ADD VALIDATION HERE
-    if (!form.title.trim()) {
-      alert("Please enter an event title.");
-      return;
-    }
+    // Use controller for validation and update
+    const formData = {
+      title: form.title,
+      category: form.category,
+      skillLevel: form.skillLevel,
+      date: form.date,
+      time: form.time,
+      location: form.location,
+      capacity: form.capacity,
+      description: form.description,
+      latitude,
+      longitude,
+      nearestMRT,
+      nearestMRTDistance,
+    };
 
-    if (!form.category) {
-      alert("Please select a category.");
-      return;
-    }
-
-    if (!form.date) {
-      alert("Please select a date.");
-      return;
-    }
-
-    if (!form.time) {
-      alert("Please select a time.");
-      return;
-    }
-
-    if (!form.location.trim()) {
-      alert("Please enter a location.");
-      return;
-    }
-
-    if (!form.capacity || Number(form.capacity) < 1) {
-      alert("Please enter a valid capacity (must be at least 1).");
-      return;
-    }
-
-    //ensure date/time not in the past
-    const selectedDateTime = new Date(`${form.date}T${form.time}`);
-    if (selectedDateTime < new Date()) {
-      alert("Event date and time cannot be in the past.");
-      return;
-    }
-
-    // Continue if all validation passes
     setLoading(true);
-
-    const { error } = await supabase
-      .from("events")
-      .update({
-        title: form.title,
-        description: form.description,
-        date: form.date,
-        time: form.time,
-        location: form.location,
-        category: form.category,
-        latitude,
-        longitude,
-        nearest_mrt_station: nearestMRT,
-        nearest_mrt_distance: nearestMRTDistance,
-        capacity: Number(form.capacity),
-      })
-      .eq("id", eventId);
-
+    const result = await eventController.updateEvent(
+      eventId!,
+      formData,
+      null, // No image file upload in edit mode
+      event?.image_url
+    );
     setLoading(false);
 
-    if (error) alert("Error updating event");
-    else {
+    if (!result.success) {
+      alert(result.message || "Error updating event");
+    } else {
       alert("Event updated successfully!");
       router.push("/MyEvents");
     }
@@ -256,6 +225,22 @@ function EditCancelContent() {
                       {cat}
                     </option>
                   ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block mb-2 font-semibold">Skill Level *</label>
+                <select
+                  value={form.skillLevel}
+                  onChange={(e) => setForm({ ...form, skillLevel: e.target.value })}
+                  className="border p-3 w-full rounded focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  required
+                >
+                  <option value="">Select skill level</option>
+                  <option value="Beginner friendly">Beginner friendly</option>
+                  <option value="Intermediate">Intermediate</option>
+                  <option value="Advanced">Advanced</option>
+                  <option value="All levels welcome">All levels welcome</option>
                 </select>
               </div>
 
@@ -338,7 +323,7 @@ function EditCancelContent() {
                     onCoordinatesSelect={async (lat, lng) => {
                       setLatitude(lat);
                       setLongitude(lng);
-                      const mrtInfo = await findNearestMRT(lat, lng);
+                      const mrtInfo = await eventController.calculateNearestMRT(lat, lng);
                       if (mrtInfo) {
                         setNearestMRT(mrtInfo.name);
                         setNearestMRTDistance(mrtInfo.distance);

@@ -19,36 +19,52 @@ interface EventFormProps {
   imageFile: File | null;
   setImageFile: (file: File | null) => void;
   errors: { [key: string]: boolean };
-  isLoading: boolean;
-  isEditing: boolean;
-  onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
   getInputClassName: (fieldName: string) => string;
 }
 
 export default function EventForm({
-  title, setTitle,
-  date, setDate,
-  time, setTime,
-  description, setDescription,
-  capacity, setCapacity,
-  category, setCategory,
-  skillLevel, setSkillLevel,
-  imageFile, setImageFile,
-  errors, isLoading, isEditing,
-  onSubmit, getInputClassName
+  title,
+  setTitle,
+  date,
+  setDate,
+  time,
+  setTime,
+  description,
+  setDescription,
+  capacity,
+  setCapacity,
+  category,
+  setCategory,
+  skillLevel,
+  setSkillLevel,
+  imageFile,
+  setImageFile,
+  errors,
+  getInputClassName,
 }: EventFormProps) {
-  
   const categories = [
-    "Sports & Fitness", "Arts & Crafts", "Music", "Gaming", "Cooking & Baking",
-    "Outdoor Activities", "Photography", "Dance", "Reading & Books", "Language Learning", "Other",
+    "Sports & Fitness",
+    "Arts & Crafts",
+    "Music",
+    "Gaming",
+    "Cooking & Baking",
+    "Outdoor Activities",
+    "Photography",
+    "Dance",
+    "Reading & Books",
+    "Language Learning",
+    "Other",
   ];
 
   const skillLevels = [
-    "Beginner friendly", "Intermediate", "Advanced", "All levels welcome",
+    "Beginner friendly",
+    "Intermediate",
+    "Advanced",
+    "All levels welcome",
   ];
 
   return (
-    <form onSubmit={onSubmit} className="space-y-6 text-left">
+    <>
       <div>
         <label className="block mb-2 font-semibold">Event Title *</label>
         <input
@@ -114,6 +130,8 @@ export default function EventForm({
         </div>
       </div>
 
+      {/* Description moved to separate section below Location */}
+      
       <div>
         <label className="block mb-2 font-semibold">Description</label>
         <textarea
@@ -147,23 +165,6 @@ export default function EventForm({
           />
         </div>
       </div>
-
-      <button
-        type="submit"
-        disabled={isLoading}
-        className={`w-full py-3 rounded text-white font-semibold ${
-          isLoading ? "bg-gray-400 cursor-not-allowed" : "bg-teal-500 hover:bg-teal-600"
-        }`}
-      >
-        {isLoading
-          ? isEditing
-            ? "Updating Event..."
-            : "Creating Event..."
-          : isEditing
-          ? "Update Event"
-          : "Create Event"}
-      </button>
-    </form>
+    </>
   );
 }
-

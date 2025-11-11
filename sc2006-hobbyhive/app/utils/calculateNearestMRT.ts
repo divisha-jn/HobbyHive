@@ -1,74 +1,47 @@
-interface MRTStation {
-  name: string;
-  latitude: number;
-  longitude: number;
-}
-
-// Haversine formula to calculate distance between two coordinates
-function calculateDistance(
-  lat1: number,
-  lon1: number,
-  lat2: number,
-  lon2: number
-): number {
-  const R = 6371; // Earth's radius in kilometers
-  const dLat = (lat2 - lat1) * (Math.PI / 180);
-  const dLon = (lon2 - lon1) * (Math.PI / 180);
-  
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(lat1 * (Math.PI / 180)) *
-      Math.cos(lat2 * (Math.PI / 180)) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
-  
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-}
-
 export async function findNearestMRT(
   latitude: number,
   longitude: number
 ): Promise<{ name: string; distance: number } | null> {
   try {
-    const response = await fetch('/api/mrt-stations');
+    const token = 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxMDAzNSwiZm9yZXZlciI6ZmFsc2UsImlzcyI6Ik9uZU1hcCIsImlhdCI6MTc2Mjg2NjQxNCwibmJmIjoxNzYyODY2NDE0LCJleHAiOjE3NjMxMjU2MTQsImp0aSI6ImMxNWI3NjcxLTk1NGYtNDA0OS1hYjNkLWY1OTNkNTMzMjk4OSJ9.nYgmR19tmUN7eyZy4WWlwRC7hFTWqHQGjgzJbEm7jTujlULgwrHPwYpZU6k1K6NbSqJP_IVmKW4E52ilB-JUA9DVNhPg7J8nnJG_UVpcrblc2Nj36m1_zzKhGckt9pFKqhiL-wvri7Zs7WLYI4iDwUepmXWtDxZHwC3gRecLd85ibtNlamF5lK02gIAIRZ0f7sNiwXTGI6TrIyi0wyOwbx-w4l1qm4bK2PlCiB32QkgM6NR8jxIiY5vL32gl0QFb5wZHrIMJL6XSyRQDHPGtiDc-n-GfNgkXWqCdYqBbubwptThAIJo7Iwat0-ydehM89Cf4UeZGecn70uX7Q02lRg'; // Replace with your actual token
+    
+    console.log('🚇 Calling server API for MRT');
+
+    // Use POST to send token in body instead of URL
+    const response = await fetch('/api/nearest-mrt', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        lat: latitude,
+        lng: longitude,
+        token: token,
+      }),
+    });
     
     if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
+      console.error('❌ Server API error:', response.status);
+      return null;
     }
 
     const data = await response.json();
+    
+    console.log('✅ Server response:', data);
 
-    if (!data.success || !data.stations) {
-      throw new Error('Invalid MRT data format');
+    if (Array.isArray(data) && data.length > 0) {
+      const nearest = data[0];
+      
+      return {
+        name: nearest.name?.replace(/ MRT STATION/gi, '').replace(/ LRT STATION/gi, '').trim() || nearest.name,
+        distance: Math.round((nearest.distance || 0) * 100) / 100
+      };
     }
 
-    const stations: MRTStation[] = data.stations;
-
-    // Find nearest station
-    let nearestStation: { name: string; distance: number } | null = null;
-    let minDistance = Infinity;
-
-    stations.forEach((station) => {
-      const distance = calculateDistance(
-        latitude,
-        longitude,
-        station.latitude,
-        station.longitude
-      );
-
-      if (distance < minDistance) {
-        minDistance = distance;
-        nearestStation = {
-          name: station.name,
-          distance: Math.round(distance * 100) / 100, // Round to 2 decimal places
-        };
-      }
-    });
-
-    return nearestStation;
+    console.log('⚠️ No MRT stations found');
+    return null;
   } catch (error) {
-    console.error('Error finding nearest MRT:', error);
+    console.error('❌ Error finding nearest MRT:', error);
     return null;
   }
 }

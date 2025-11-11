@@ -1,26 +1,22 @@
 "use client";
 import React, { useState, useEffect, Suspense } from "react";
-import { createClient } from "@/utils/supabase/client";
 import Header from "@/app/components/header";
 import Navbar from "@/app/components/Navbar";
 import { useSearchParams, useRouter } from "next/navigation";
-import { findNearestMRT } from "@/app/utils/calculateNearestMRT";
-import { getLocationConfigForCategory } from "@/app/config/categoryLocationMapping";
-import LocationAutocompleteInput from "@/app/components/LocationAutocompleteInput";
-import dynamic from "next/dynamic";
-
-const LocationMapPicker = dynamic(
-  () => import("@/app/components/LocationMapPicker"),
-  { ssr: false }
-);
+import { EventController } from "@/app/host/controllers/EventController";
+import { EventModel } from "@/app/host/models/EventModel";
+import LocationSection from "@/app/host/components/LocationSection";
 
 function CreateEventContent() {
-  const supabase = createClient();
   const searchParams = useSearchParams();
   const router = useRouter();
   const eventId = searchParams.get("eventId");
 
-  const [eventToEdit, setEventToEdit] = useState<any>(null);
+  // Initialize MVC
+  const eventModel = new EventModel();
+  const eventController = new EventController(eventModel);
+
+  // Form state
   const [title, setTitle] = useState("");
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
@@ -34,11 +30,14 @@ function CreateEventContent() {
   const [category, setCategory] = useState("");
   const [skillLevel, setSkillLevel] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [useMapPicker, setUseMapPicker] = useState(false);
+
+  // UI state
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: boolean }>({});
-  const [useMapPicker, setUseMapPicker] = useState(false);
+  const [eventToEdit, setEventToEdit] = useState<any>(null);
 
   const categories = [
     "Sports & Fitness",
@@ -61,210 +60,144 @@ function CreateEventContent() {
     "All levels welcome",
   ];
 
+  // Fetch event if editing
   useEffect(() => {
     if (!eventId) return;
 
     const fetchEvent = async () => {
-      const { data, error } = await supabase
-        .from("events")
-        .select("*")
-        .eq("id", eventId)
-        .single();
+      const { data, error } = await eventController.fetchEventById(eventId);
 
       if (error) {
         console.error("Failed to fetch event:", error);
         return;
       }
 
-      setEventToEdit({
-        id: data.id,
-        title: data.title,
-        date: data.date,
-        time: data.time,
-        location: data.location,
-        latitude: data.latitude,
-        longitude: data.longitude,
-        nearest_mrt_station: data.nearest_mrt_station,
-        nearest_mrt_distance: data.nearest_mrt_distance,
-        description: data.description,
-        capacity: data.capacity.toString(),
-        category: data.category,
-        skillLevel: data.skill_level,
-        image_url: data.image_url,
-      });
+      if (data) {
+        setEventToEdit(data);
+        setTitle(data.title);
+        setDate(data.date);
+        setTime(data.time);
+        setLocation(data.location);
+        setDescription(data.description || "");
+        setCapacity(data.capacity.toString());
+        setCategory(data.category);
+        setSkillLevel(data.skill_level);
+        if (data.latitude) setLatitude(data.latitude);
+        if (data.longitude) setLongitude(data.longitude);
+        if (data.nearest_mrt_station) setNearestMRT(data.nearest_mrt_station);
+        if (data.nearest_mrt_distance) setNearestMRTDistance(data.nearest_mrt_distance);
+      }
     };
 
     fetchEvent();
-  }, [eventId, supabase]);
+  }, [eventId]);
 
-  useEffect(() => {
-    if (eventToEdit) {
-      setTitle(eventToEdit.title);
-      setDate(eventToEdit.date);
-      setTime(eventToEdit.time);
-      setLocation(eventToEdit.location);
-      setDescription(eventToEdit.description);
-      setCapacity(eventToEdit.capacity);
-      setCategory(eventToEdit.category);
-      setSkillLevel(eventToEdit.skillLevel);
-      if (eventToEdit.latitude) setLatitude(eventToEdit.latitude);
-      if (eventToEdit.longitude) setLongitude(eventToEdit.longitude);
-      if (eventToEdit.nearest_mrt_station) setNearestMRT(eventToEdit.nearest_mrt_station);
-      if (eventToEdit.nearest_mrt_distance) setNearestMRTDistance(eventToEdit.nearest_mrt_distance);
+  // Handle location selection with MRT calculation
+  // Add this after the handleLocationSelect function definition
+const handleLocationSelect = async (locationName: string, lat?: number, lng?: number) => {
+  console.log('🔍 handleLocationSelect called:', { locationName, lat, lng }); // ADD THIS
+  
+  setLocation(locationName);
+  setErrors((prev) => ({ ...prev, location: false }));
+
+  if (lat !== undefined && lng !== undefined) {
+    setLatitude(lat);
+    setLongitude(lng);
+    
+    console.log('🚇 Calculating MRT for:', lat, lng); // ADD THIS
+
+    const mrtInfo = await eventController.calculateNearestMRT(lat, lng);
+    console.log('🚇 MRT Info received:', mrtInfo); // ADD THIS
+    
+    if (mrtInfo) {
+      setNearestMRT(mrtInfo.name);
+      setNearestMRTDistance(mrtInfo.distance);
+      console.log('✅ MRT State set:', mrtInfo.name, mrtInfo.distance); // ADD THIS
+    } else {
+      console.log('❌ No MRT info returned'); // ADD THIS
     }
-  }, [eventToEdit]);
+  } else {
+    console.log('⚠️ Coordinates are undefined'); // ADD THIS
+  }
+};
 
-  const handleLocationSelect = async (locationName: string, lat?: number, lng?: number) => {
-    setLocation(locationName);
-    setErrors((prev) => ({ ...prev, location: false }));
+// Also add this useEffect to monitor state changes
+useEffect(() => {
+  console.log('📊 MRT State changed:', { nearestMRT, nearestMRTDistance });
+}, [nearestMRT, nearestMRTDistance]);
 
-    if (lat !== undefined && lng !== undefined) {
-      setLatitude(lat);
-      setLongitude(lng);
 
-      try {
-        const mrtInfo = await findNearestMRT(lat, lng);
-        if (mrtInfo) {
-          setNearestMRT(mrtInfo.name);
-          setNearestMRTDistance(mrtInfo.distance);
-        }
-      } catch (error) {
-        console.error("Error finding nearest MRT:", error);
-      }
-    }
-  };
+  
 
+  // Handle form submission
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
     setMessage("");
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      setMessage("Please log in first.");
-      setIsLoading(false);
-      return;
-    }
-    const userId = user.id;
+    const formData = {
+      title,
+      category,
+      skillLevel,
+      date,
+      time,
+      location,
+      capacity,
+      description,
+      latitude,
+      longitude,
+      nearestMRT,
+      nearestMRTDistance,
+    };
 
-    // Input validation
-    const newErrors: { [key: string]: boolean } = {};
-    if (!title.trim()) newErrors.title = true;
-    if (!category) newErrors.category = true;
-    if (!skillLevel) newErrors.skillLevel = true;
-    if (!date) newErrors.date = true;
-    if (!time) newErrors.time = true;
-    if (!location.trim()) newErrors.location = true;
-    if (!capacity || parseInt(capacity) <= 0) newErrors.capacity = true;
-
-    // Future date/time validation
-    if (date && time) {
-      const selectedDateTime = new Date(`${date}T${time}`);
-      const now = new Date();
-
-      if (selectedDateTime <= now) {
-        newErrors.date = true;
-        newErrors.time = true;
-        setMessage("Please select a future date and time.");
-        setIsLoading(false);
-        setErrors(newErrors);
-        return;
-      }
+    let result;
+    if (eventToEdit) {
+      result = await eventController.updateEvent(
+        eventToEdit.id,
+        formData,
+        imageFile,
+        eventToEdit.image_url
+      );
+    } else {
+      result = await eventController.createEvent(formData, imageFile);
     }
 
-    setErrors(newErrors);
-    if (Object.keys(newErrors).length > 0) {
-      if (!message) setMessage("Please fill in all required fields marked with *");
-      setIsLoading(false);
-      return;
+    if (result.success) {
+      setSuccess(true);
+      setMessage(result.message || "");
+    } else {
+      setErrors(result.errors);
+      setMessage(result.message || "");
     }
 
-    try {
-      let imageUrl =
-        eventToEdit?.image_url ||
-        "https://images.unsplash.com/photo-1507525428034-b723cf961d3e";
-      if (imageFile) {
-        const fileExt = imageFile.name.split(".").pop();
-        const uniqueName = `${title.replace(/\s+/g, "_")}_${Date.now()}.${fileExt}`;
-        const filePath = `${userId}/${uniqueName}`;
-        const { error: uploadError } = await supabase.storage
-          .from("event-photo")
-          .upload(filePath, imageFile);
-        if (uploadError) {
-          setMessage("Error uploading image: " + uploadError.message);
-          setIsLoading(false);
-          return;
-        }
-        const { data: publicUrlData } = supabase.storage
-          .from("event-photo")
-          .getPublicUrl(filePath);
-        imageUrl = publicUrlData.publicUrl;
-      }
+    setIsLoading(false);
+  };
 
-      if (eventToEdit) {
-        const { error } = await supabase
-          .from("events")
-          .update({
-            title,
-            date,
-            time,
-            location,
-            latitude,
-            longitude,
-            nearest_mrt_station: nearestMRT,
-            nearest_mrt_distance: nearestMRTDistance,
-            description,
-            capacity: parseInt(capacity),
-            category,
-            skill_level: skillLevel,
-            image_url: imageUrl,
-          })
-          .eq("id", eventToEdit.id);
-
-        if (error) {
-          setMessage("Error updating event: " + error.message);
-        } else {
-          setSuccess(true);
-          setMessage("Event updated successfully!");
-        }
-      } else {
-        const { error } = await supabase.from("events").insert([
-          {
-            title,
-            date,
-            time,
-            location,
-            latitude,
-            longitude,
-            nearest_mrt_station: nearestMRT,
-            nearest_mrt_distance: nearestMRTDistance,
-            description,
-            capacity: parseInt(capacity),
-            category,
-            skill_level: skillLevel,
-            image_url: imageUrl,
-            host_id: userId,
-          },
-        ]);
-
-        if (error) {
-          setMessage("Error creating event: " + error.message);
-        } else {
-          setSuccess(true);
-          setMessage("Event created successfully!");
-        }
-      }
-    } catch (err) {
-      console.error(err);
-      setMessage("Unexpected error. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
+  // Handle reset form
+  const handleReset = () => {
+    setSuccess(false);
+    setTitle("");
+    setDate("");
+    setTime("");
+    setLocation("");
+    setLatitude(null);
+    setLongitude(null);
+    setNearestMRT(null);
+    setNearestMRTDistance(null);
+    setDescription("");
+    setCapacity("");
+    setCategory("");
+    setSkillLevel("");
+    setErrors({});
+    setMessage("");
+    setImageFile(null);
+    setUseMapPicker(false);
+    setEventToEdit(null);
+    router.push("/host/CreateEvent");
   };
 
   const getInputClassName = (fieldName: string) => {
-    const baseClass =
-      "w-full border p-3 rounded focus:outline-none focus:ring-2";
+    const baseClass = "w-full border p-3 rounded focus:outline-none focus:ring-2";
     return errors[fieldName]
       ? `${baseClass} border-red-500 focus:ring-red-500`
       : `${baseClass} border-gray-300 focus:ring-teal-500`;
@@ -296,27 +229,7 @@ function CreateEventContent() {
                 Go to My Events
               </a>
               <button
-                onClick={() => {
-                  setSuccess(false);
-                  setTitle("");
-                  setDate("");
-                  setTime("");
-                  setLocation("");
-                  setLatitude(null);
-                  setLongitude(null);
-                  setNearestMRT(null);
-                  setNearestMRTDistance(null);
-                  setDescription("");
-                  setCapacity("");
-                  setCategory("");
-                  setSkillLevel("");
-                  setErrors({});
-                  setMessage("");
-                  setImageFile(null);
-                  setUseMapPicker(false);
-                  setEventToEdit(null);
-                  router.push("/host/CreateEvent");
-                }}
+                onClick={handleReset}
                 className="inline-block bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-600 transition"
               >
                 {eventToEdit ? "Update Another Event" : "Create Another Event"}
@@ -335,6 +248,7 @@ function CreateEventContent() {
               )}
 
               <form onSubmit={handleSubmit} className="space-y-6 text-left">
+                {/* Event Title */}
                 <div>
                   <label className="block mb-2 font-semibold">Event Title *</label>
                   <input
@@ -346,6 +260,7 @@ function CreateEventContent() {
                   />
                 </div>
 
+                {/* Category & Skill Level */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block mb-2 font-semibold">Event Category *</label>
@@ -379,6 +294,7 @@ function CreateEventContent() {
                   </div>
                 </div>
 
+                {/* Date & Time */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block mb-2 font-semibold">Date *</label>
@@ -400,73 +316,25 @@ function CreateEventContent() {
                   </div>
                 </div>
 
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="block font-semibold">Location *</label>
-                    {category &&
-                      getLocationConfigForCategory(category).showMapPicker && (
-                        <button
-                          type="button"
-                          onClick={() => setUseMapPicker(!useMapPicker)}
-                          className="text-sm bg-teal-100 text-teal-700 px-3 py-1 rounded hover:bg-teal-200 transition"
-                        >
-                          {useMapPicker ? "📝 Switch to Manual Entry" : "🗺️ Use Map Picker"}
-                        </button>
-                      )}
-                  </div>
+                {/* LOCATION SECTION - After Date/Time */}
+                <LocationSection
+                  location={location}
+                  setLocation={setLocation}
+                  latitude={latitude}
+                  setLatitude={setLatitude}
+                  longitude={longitude}
+                  setLongitude={setLongitude}
+                  nearestMRT={nearestMRT}
+                  nearestMRTDistance={nearestMRTDistance}
+                  category={category}
+                  useMapPicker={useMapPicker}
+                  setUseMapPicker={setUseMapPicker}
+                  errors={errors}
+                  onLocationSelect={handleLocationSelect}
+                  getInputClassName={getInputClassName}
+                />
 
-                  {!category && (
-                    <div className="p-3 bg-yellow-50 border border-yellow-200 rounded mb-3 text-sm text-yellow-800">
-                      ⚠️ Please select an event category first
-                    </div>
-                  )}
-
-                  {useMapPicker && category && getLocationConfigForCategory(category).showMapPicker ? (
-                    <>
-                      <LocationMapPicker
-                        onLocationSelect={handleLocationSelect}
-                        selectedLocation={location}
-                        eventCategory={category}
-                      />
-                      {location && (
-                        <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded">
-                          <p className="text-sm text-green-800">
-                            <strong>Selected:</strong> {location}
-                          </p>
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <LocationAutocompleteInput
-                      location={location}
-                      setLocation={setLocation}
-                      onCoordinatesSelect={async (lat, lng) => {
-                        setLatitude(lat);
-                        setLongitude(lng);
-                        try {
-                          const mrtInfo = await findNearestMRT(lat, lng);
-                          if (mrtInfo) {
-                            setNearestMRT(mrtInfo.name);
-                            setNearestMRTDistance(mrtInfo.distance);
-                          }
-                        } catch (error) {
-                          console.error("Error finding nearest MRT:", error);
-                        }
-                      }}
-                      disabled={!category}
-                      className={getInputClassName("location")}
-                    />
-                  )}
-                </div>
-
-                {nearestMRT && nearestMRTDistance && (
-                  <div className="p-3 bg-blue-50 border border-blue-200 rounded">
-                    <p className="text-sm text-blue-800">
-                      🚇 <strong>Nearest MRT:</strong> {nearestMRT} ({nearestMRTDistance} km away)
-                    </p>
-                  </div>
-                )}
-
+                {/* Description */}
                 <div>
                   <label className="block mb-2 font-semibold">Description</label>
                   <textarea
@@ -478,6 +346,7 @@ function CreateEventContent() {
                   />
                 </div>
 
+                {/* Capacity & Image */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block mb-2 font-semibold">Max Participants *</label>
@@ -501,6 +370,7 @@ function CreateEventContent() {
                   </div>
                 </div>
 
+                {/* Submit Button */}
                 <button
                   type="submit"
                   disabled={isLoading}

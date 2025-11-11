@@ -27,39 +27,39 @@ interface LocationSectionProps {
 }
 
 export default function LocationSection({
-  location, setLocation,
-  latitude, setLatitude,
-  longitude, setLongitude,
-  nearestMRT, nearestMRTDistance,
-  category, useMapPicker, setUseMapPicker,
-  errors, onLocationSelect, getInputClassName
+  location,
+  setLocation,
+  latitude,
+  setLatitude,
+  longitude,
+  setLongitude,
+  nearestMRT,
+  nearestMRTDistance,
+  category,
+  useMapPicker,
+  setUseMapPicker,
+  errors,
+  onLocationSelect,
+  getInputClassName,
 }: LocationSectionProps) {
-  
-  const handleCoordinatesSelect = async (lat: number, lng: number) => {
-    setLatitude(lat);
-    setLongitude(lng);
-    // MRT logic would be handled by controller
-  };
-
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
         <label className="block font-semibold">Location *</label>
-        {category &&
-          getLocationConfigForCategory(category).showMapPicker && (
-            <button
-              type="button"
-              onClick={() => setUseMapPicker(!useMapPicker)}
-              className="text-sm bg-teal-100 text-teal-700 px-3 py-1 rounded hover:bg-teal-200 transition"
-            >
-              {useMapPicker ? "Switch to Manual Entry" : "Use Map Picker"}
-            </button>
-          )}
+        {category && getLocationConfigForCategory(category).showMapPicker && (
+          <button
+            type="button"
+            onClick={() => setUseMapPicker(!useMapPicker)}
+            className="text-sm bg-teal-100 text-teal-700 px-3 py-1 rounded hover:bg-teal-200 transition"
+          >
+            {useMapPicker ? "📝 Switch to Manual Entry" : "🗺️ Use Map Picker"}
+          </button>
+        )}
       </div>
 
       {!category && (
         <div className="p-3 bg-yellow-50 border border-yellow-200 rounded mb-3 text-sm text-yellow-800">
-           Please select an event category first
+          ⚠️ Please select an event category first
         </div>
       )}
 
@@ -77,23 +77,31 @@ export default function LocationSection({
               </p>
             </div>
           )}
+          {nearestMRT && (
+            <div className="mt-2 p-3 bg-purple-50 border border-purple-200 rounded">
+              <p className="text-sm text-purple-800">
+                🚇 <strong>Nearest MRT:</strong> {nearestMRT}
+              </p>
+            </div>
+          )}
         </>
       ) : (
-        <LocationAutocompleteInput
-          location={location}
-          setLocation={setLocation}
-          onCoordinatesSelect={handleCoordinatesSelect}
-          disabled={!category}
-          className={getInputClassName("location")}
-        />
-      )}
-
-      {nearestMRT && nearestMRTDistance && (
-        <div className="p-3 bg-blue-50 border border-blue-200 rounded mt-3">
-          <p className="text-sm text-blue-800">
-             <strong>Nearest MRT:</strong> {nearestMRT} ({nearestMRTDistance} km away)
-          </p>
-        </div>
+        <>
+          <LocationAutocompleteInput
+            location={location}
+            setLocation={setLocation}
+            onCoordinatesSelect={(lat, lng, name) => onLocationSelect(name, lat, lng)}
+            disabled={!category}
+            className={getInputClassName("location")}
+          />
+          {nearestMRT && (
+            <div className="mt-2 p-3 bg-purple-50 border border-purple-200 rounded">
+              <p className="text-sm text-purple-800">
+                🚇 <strong>Nearest MRT:</strong> {nearestMRT}
+              </p>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
