@@ -24,3 +24,16 @@ interface EventFormProps {
   onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
   getInputClassName: (fieldName: string) => string;
 }
+
+export default function EventForm({
+  title, setTitle,
+  date, setDate,
+  time, setTime,
+  description, setDescription,
+  capacity, setCapacity,
+  category, setCategory,
+  skillLevel, setSkillLevel,
+  imageFile, setImageFile,
+  errors, isLoading, isEditing,
+  onSubmit, getInputClassName
+}: EventFormProps) {
