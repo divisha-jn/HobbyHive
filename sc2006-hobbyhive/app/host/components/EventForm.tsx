@@ -37,3 +37,13 @@ export default function EventForm({
   errors, isLoading, isEditing,
   onSubmit, getInputClassName
 }: EventFormProps) {
+  
+  const categories = [
+    "Sports & Fitness", "Arts & Crafts", "Music", "Gaming", "Cooking & Baking",
+    "Outdoor Activities", "Photography", "Dance", "Reading & Books", "Language Learning", "Other",
+  ];
+
+  const skillLevels = [
+    "Beginner friendly", "Intermediate", "Advanced", "All levels welcome",
+  ];
+
