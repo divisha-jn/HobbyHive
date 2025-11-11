@@ -1,35 +1,18 @@
 "use client";
 import React, { useState, useEffect, Suspense } from "react";
 import { createClient } from "@/utils/supabase/client";
-import Header from "../../components/header";
-import Navbar from "../../components/Navbar";
-import dynamic from "next/dynamic";
+import Header from "@/app/components/header";
+import Navbar from "@/app/components/Navbar";
 import { useSearchParams, useRouter } from "next/navigation";
-import { getLocationConfigForCategory } from "@/app/config/categoryLocationMapping";
-import LocationAutocompleteInput from "../../components/LocationAutocompleteInput";
 import { findNearestMRT } from "@/app/utils/calculateNearestMRT";
+import { getLocationConfigForCategory } from "@/app/config/categoryLocationMapping";
+import LocationAutocompleteInput from "@/app/components/LocationAutocompleteInput";
+import dynamic from "next/dynamic";
 
 const LocationMapPicker = dynamic(
-  () => import("../../components/LocationMapPicker"),
+  () => import("@/app/components/LocationMapPicker"),
   { ssr: false }
 );
-
-interface EventData {
-  id: string;
-  title: string;
-  date: string;
-  time: string;
-  location: string;
-  latitude?: number;
-  longitude?: number;
-  nearest_mrt_station?: string;
-  nearest_mrt_distance?: number;
-  description: string;
-  capacity: string;
-  category: string;
-  skillLevel: string;
-  image_url?: string;
-}
 
 function CreateEventContent() {
   const supabase = createClient();
@@ -37,7 +20,7 @@ function CreateEventContent() {
   const router = useRouter();
   const eventId = searchParams.get("eventId");
 
-  const [eventToEdit, setEventToEdit] = useState<EventData | null>(null);
+  const [eventToEdit, setEventToEdit] = useState<any>(null);
   const [title, setTitle] = useState("");
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
@@ -152,132 +135,133 @@ function CreateEventContent() {
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-  e.preventDefault();
-  setIsLoading(true);
-  setMessage("");
+    e.preventDefault();
+    setIsLoading(true);
+    setMessage("");
 
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    setMessage("Please log in first.");
-    setIsLoading(false);
-    return;
-  }
-  const userId = user.id;
-
-  // Input validation
-  const newErrors: { [key: string]: boolean } = {};
-  if (!title.trim()) newErrors.title = true;
-  if (!category) newErrors.category = true;
-  if (!skillLevel) newErrors.skillLevel = true;
-  if (!date) newErrors.date = true;
-  if (!time) newErrors.time = true;
-  if (!location.trim()) newErrors.location = true;
-  if (!capacity || parseInt(capacity) <= 0) newErrors.capacity = true;
-
-  // Future date/time validation
-  if (date && time) {
-    const selectedDateTime = new Date(`${date}T${time}`);
-    const now = new Date();
-
-    if (selectedDateTime <= now) {
-      newErrors.date = true;
-      newErrors.time = true;
-      setMessage("Please select a future date and time.");
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      setMessage("Please log in first.");
       setIsLoading(false);
-      setErrors(newErrors);
       return;
     }
-  }
+    const userId = user.id;
 
-  setErrors(newErrors);
-  if (Object.keys(newErrors).length > 0) {
-    if (!message) setMessage("Please fill in all required fields marked with *");
-    setIsLoading(false);
-    return;
-  }
+    // Input validation
+    const newErrors: { [key: string]: boolean } = {};
+    if (!title.trim()) newErrors.title = true;
+    if (!category) newErrors.category = true;
+    if (!skillLevel) newErrors.skillLevel = true;
+    if (!date) newErrors.date = true;
+    if (!time) newErrors.time = true;
+    if (!location.trim()) newErrors.location = true;
+    if (!capacity || parseInt(capacity) <= 0) newErrors.capacity = true;
 
-  try {
-    let imageUrl =
-      eventToEdit?.image_url ||
-      "https://images.unsplash.com/photo-1507525428034-b723cf961d3e";
-    if (imageFile) {
-      const fileExt = imageFile.name.split(".").pop();
-      const uniqueName = `${title.replace(/\s+/g, "_")}_${Date.now()}.${fileExt}`;
-      const filePath = `${userId}/${uniqueName}`;
-      const { error: uploadError } = await supabase.storage
-        .from("event-photo")
-        .upload(filePath, imageFile);
-      if (uploadError) {
-        setMessage("Error uploading image: " + uploadError.message);
+    // Future date/time validation
+    if (date && time) {
+      const selectedDateTime = new Date(`${date}T${time}`);
+      const now = new Date();
+
+      if (selectedDateTime <= now) {
+        newErrors.date = true;
+        newErrors.time = true;
+        setMessage("Please select a future date and time.");
         setIsLoading(false);
+        setErrors(newErrors);
         return;
       }
-      const { data: publicUrlData } = supabase.storage
-        .from("event-photo")
-        .getPublicUrl(filePath);
-      imageUrl = publicUrlData.publicUrl;
     }
 
-    if (eventToEdit) {
-      const { error } = await supabase
-        .from("events")
-        .update({
-          title,
-          date,
-          time,
-          location,
-          latitude,
-          longitude,
-          nearest_mrt_station: nearestMRT,
-          nearest_mrt_distance: nearestMRTDistance,
-          description,
-          capacity: parseInt(capacity),
-          category,
-          skill_level: skillLevel,
-          image_url: imageUrl,
-        })
-        .eq("id", eventToEdit.id);
-
-      if (error) {
-        setMessage("Error updating event: " + error.message);
-      } else {
-        setSuccess(true);
-        setMessage("Event updated successfully!");
-      }
-    } else {
-      const { error } = await supabase.from("events").insert([
-        {
-          title,
-          date,
-          time,
-          location,
-          latitude,
-          longitude,
-          nearest_mrt_station: nearestMRT,
-          nearest_mrt_distance: nearestMRTDistance,
-          description,
-          capacity: parseInt(capacity),
-          category,
-          skill_level: skillLevel,
-          image_url: imageUrl,
-          host_id: userId,
-        },
-      ]);
-
-      if (error) {
-        setMessage("Error creating event: " + error.message);
-      } else {
-        setSuccess(true);
-        setMessage("Event created successfully!");
-      }
+    setErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) {
+      if (!message) setMessage("Please fill in all required fields marked with *");
+      setIsLoading(false);
+      return;
     }
-  } catch (err) {
-    console.error(err);
-    setMessage("Unexpected error. Please try again.");
-  } finally {
-    setIsLoading(false);
-  }
-};
+
+    try {
+      let imageUrl =
+        eventToEdit?.image_url ||
+        "https://images.unsplash.com/photo-1507525428034-b723cf961d3e";
+      if (imageFile) {
+        const fileExt = imageFile.name.split(".").pop();
+        const uniqueName = `${title.replace(/\s+/g, "_")}_${Date.now()}.${fileExt}`;
+        const filePath = `${userId}/${uniqueName}`;
+        const { error: uploadError } = await supabase.storage
+          .from("event-photo")
+          .upload(filePath, imageFile);
+        if (uploadError) {
+          setMessage("Error uploading image: " + uploadError.message);
+          setIsLoading(false);
+          return;
+        }
+        const { data: publicUrlData } = supabase.storage
+          .from("event-photo")
+          .getPublicUrl(filePath);
+        imageUrl = publicUrlData.publicUrl;
+      }
+
+      if (eventToEdit) {
+        const { error } = await supabase
+          .from("events")
+          .update({
+            title,
+            date,
+            time,
+            location,
+            latitude,
+            longitude,
+            nearest_mrt_station: nearestMRT,
+            nearest_mrt_distance: nearestMRTDistance,
+            description,
+            capacity: parseInt(capacity),
+            category,
+            skill_level: skillLevel,
+            image_url: imageUrl,
+          })
+          .eq("id", eventToEdit.id);
+
+        if (error) {
+          setMessage("Error updating event: " + error.message);
+        } else {
+          setSuccess(true);
+          setMessage("Event updated successfully!");
+        }
+      } else {
+        const { error } = await supabase.from("events").insert([
+          {
+            title,
+            date,
+            time,
+            location,
+            latitude,
+            longitude,
+            nearest_mrt_station: nearestMRT,
+            nearest_mrt_distance: nearestMRTDistance,
+            description,
+            capacity: parseInt(capacity),
+            category,
+            skill_level: skillLevel,
+            image_url: imageUrl,
+            host_id: userId,
+          },
+        ]);
+
+        if (error) {
+          setMessage("Error creating event: " + error.message);
+        } else {
+          setSuccess(true);
+          setMessage("Event created successfully!");
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      setMessage("Unexpected error. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const getInputClassName = (fieldName: string) => {
     const baseClass =
       "w-full border p-3 rounded focus:outline-none focus:ring-2";
