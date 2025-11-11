@@ -4,13 +4,13 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import dynamic from "next/dynamic";
 import { getLocationConfigForCategory } from "@/app/config/categoryLocationMapping";
-import LocationAutocompleteInput from "../../components/LocationAutocompleteInput";
+import LocationAutocompleteInput from "@/app/components/LocationAutocompleteInput";
 import { findNearestMRT } from "@/app/utils/calculateNearestMRT";
 import Header from "@/app/components/header";
 import Navbar from "@/app/components/Navbar";
 
 const LocationMapPicker = dynamic(
-  () => import("../../components/LocationMapPicker"),
+  () => import("@/app/components/LocationMapPicker"),
   { ssr: false }
 );
 
@@ -120,74 +120,75 @@ function EditCancelContent() {
   };
 
   const handleEdit = async (e: React.FormEvent) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  // ADD VALIDATION HERE
-  if (!form.title.trim()) {
-    alert("Please enter an event title.");
-    return;
-  }
+    // ADD VALIDATION HERE
+    if (!form.title.trim()) {
+      alert("Please enter an event title.");
+      return;
+    }
 
-  if (!form.category) {
-    alert("Please select a category.");
-    return;
-  }
+    if (!form.category) {
+      alert("Please select a category.");
+      return;
+    }
 
-  if (!form.date) {
-    alert("Please select a date.");
-    return;
-  }
+    if (!form.date) {
+      alert("Please select a date.");
+      return;
+    }
 
-  if (!form.time) {
-    alert("Please select a time.");
-    return;
-  }
+    if (!form.time) {
+      alert("Please select a time.");
+      return;
+    }
 
-  if (!form.location.trim()) {
-    alert("Please enter a location.");
-    return;
-  }
+    if (!form.location.trim()) {
+      alert("Please enter a location.");
+      return;
+    }
 
-  if (!form.capacity || Number(form.capacity) < 1) {
-    alert("Please enter a valid capacity (must be at least 1).");
-    return;
-  }
+    if (!form.capacity || Number(form.capacity) < 1) {
+      alert("Please enter a valid capacity (must be at least 1).");
+      return;
+    }
 
-  //ensure date/time not in the past
-  const selectedDateTime = new Date(`${form.date}T${form.time}`);
-  if (selectedDateTime < new Date()) {
-    alert("Event date and time cannot be in the past.");
-    return;
-  }
+    //ensure date/time not in the past
+    const selectedDateTime = new Date(`${form.date}T${form.time}`);
+    if (selectedDateTime < new Date()) {
+      alert("Event date and time cannot be in the past.");
+      return;
+    }
 
-  // Continue if all validation passes
-  setLoading(true);
+    // Continue if all validation passes
+    setLoading(true);
 
-  const { error } = await supabase
-    .from("events")
-    .update({
-      title: form.title,
-      description: form.description,
-      date: form.date,
-      time: form.time,
-      location: form.location,
-      category: form.category,
-      latitude,
-      longitude,
-      nearest_mrt_station: nearestMRT,
-      nearest_mrt_distance: nearestMRTDistance,
-      capacity: Number(form.capacity),
-    })
-    .eq("id", eventId);
+    const { error } = await supabase
+      .from("events")
+      .update({
+        title: form.title,
+        description: form.description,
+        date: form.date,
+        time: form.time,
+        location: form.location,
+        category: form.category,
+        latitude,
+        longitude,
+        nearest_mrt_station: nearestMRT,
+        nearest_mrt_distance: nearestMRTDistance,
+        capacity: Number(form.capacity),
+      })
+      .eq("id", eventId);
 
-  setLoading(false);
+    setLoading(false);
 
-  if (error) alert("Error updating event");
-  else {
-    alert("Event updated successfully!");
-    router.push("/MyEvents");
-  }
-};
+    if (error) alert("Error updating event");
+    else {
+      alert("Event updated successfully!");
+      router.push("/MyEvents");
+    }
+  };
+
   if (loading) return <p className="p-6">Loading...</p>;
   if (!event) return <p className="p-6">Event not found.</p>;
 
@@ -197,198 +198,198 @@ function EditCancelContent() {
         <Navbar />
       </div>
       <Header />
-    <div className="min-h-screen bg-gray-50 flex justify-center items-center p-6">
-      <div className="bg-white p-8 rounded-xl shadow-lg w-full max-w-2xl">
-        <h1 className="text-2xl font-bold mb-6 text-center">
-          {mode === "edit" ? "Edit Event Details" : "Cancel Event"}
-        </h1>
+      <div className="min-h-screen bg-gray-50 flex justify-center items-center p-6">
+        <div className="bg-white p-8 rounded-xl shadow-lg w-full max-w-2xl">
+          <h1 className="text-2xl font-bold mb-6 text-center">
+            {mode === "edit" ? "Edit Event Details" : "Cancel Event"}
+          </h1>
 
-        {mode === "cancel" ? (
-          <div className="text-center">
-            <p className="text-gray-700 mb-4">
-              <b>{event.title}</b>
-              <br />
-              {event.date} — {event.time}
-              <br />
-              {event.location}
-            </p>
-            <div className="flex justify-center gap-4">
-              <button
-                onClick={() => router.back()}
-                className="border border-gray-300 px-4 py-2 rounded hover:bg-gray-100"
-              >
-                Back
-              </button>
-              <button
-                onClick={handleCancel}
-                disabled={loading}
-                className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
-              >
-                {loading ? "Cancelling..." : "Cancel Event"}
-              </button>
+          {mode === "cancel" ? (
+            <div className="text-center">
+              <p className="text-gray-700 mb-4">
+                <b>{event.title}</b>
+                <br />
+                {event.date} — {event.time}
+                <br />
+                {event.location}
+              </p>
+              <div className="flex justify-center gap-4">
+                <button
+                  onClick={() => router.back()}
+                  className="border border-gray-300 px-4 py-2 rounded hover:bg-gray-100"
+                >
+                  Back
+                </button>
+                <button
+                  onClick={handleCancel}
+                  disabled={loading}
+                  className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+                >
+                  {loading ? "Cancelling..." : "Cancel Event"}
+                </button>
+              </div>
             </div>
-          </div>
-        ) : (
-          <form onSubmit={handleEdit} className="space-y-4 text-left">
-            <div>
-              <label className="block mb-2 font-semibold">Title *</label>
-              <input
-                type="text"
-                value={form.title}
-                onChange={(e) => setForm({ ...form, title: e.target.value })}
-                className="border p-3 w-full rounded focus:outline-none focus:ring-2 focus:ring-teal-500"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block mb-2 font-semibold">Category *</label>
-              <select
-                value={form.category}
-                onChange={(e) => setForm({ ...form, category: e.target.value })}
-                className="border p-3 w-full rounded focus:outline-none focus:ring-2 focus:ring-teal-500"
-                required
-              >
-                <option value="">Select a category</option>
-                {categories.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block mb-2 font-semibold">Description</label>
-              <textarea
-                value={form.description}
-                onChange={(e) => setForm({ ...form, description: e.target.value })}
-                className="border p-3 w-full rounded focus:outline-none focus:ring-2 focus:ring-teal-500"
-                rows={3}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
+          ) : (
+            <form onSubmit={handleEdit} className="space-y-4 text-left">
               <div>
-                <label className="block mb-2 font-semibold">Date *</label>
+                <label className="block mb-2 font-semibold">Title *</label>
                 <input
-                  type="date"
-                  value={form.date}
-                  onChange={(e) => setForm({ ...form, date: e.target.value })}
+                  type="text"
+                  value={form.title}
+                  onChange={(e) => setForm({ ...form, title: e.target.value })}
                   className="border p-3 w-full rounded focus:outline-none focus:ring-2 focus:ring-teal-500"
                   required
                 />
               </div>
 
               <div>
-                <label className="block mb-2 font-semibold">Time *</label>
-                <input
-                  type="time"
-                  value={form.time}
-                  onChange={(e) => setForm({ ...form, time: e.target.value })}
+                <label className="block mb-2 font-semibold">Category *</label>
+                <select
+                  value={form.category}
+                  onChange={(e) => setForm({ ...form, category: e.target.value })}
                   className="border p-3 w-full rounded focus:outline-none focus:ring-2 focus:ring-teal-500"
                   required
+                >
+                  <option value="">Select a category</option>
+                  {categories.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block mb-2 font-semibold">Description</label>
+                <textarea
+                  value={form.description}
+                  onChange={(e) => setForm({ ...form, description: e.target.value })}
+                  className="border p-3 w-full rounded focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  rows={3}
                 />
               </div>
-            </div>
 
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="block font-semibold">Location *</label>
-                {form.category &&
-                  getLocationConfigForCategory(form.category).showMapPicker && (
-                    <button
-                      type="button"
-                      onClick={() => setUseMapPicker(!useMapPicker)}
-                      className="text-sm bg-teal-100 text-teal-700 px-3 py-1 rounded hover:bg-teal-200 transition"
-                    >
-                      {useMapPicker ? "📝 Switch to Manual Entry" : "🗺️ Use Map Picker"}
-                    </button>
-                  )}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block mb-2 font-semibold">Date *</label>
+                  <input
+                    type="date"
+                    value={form.date}
+                    onChange={(e) => setForm({ ...form, date: e.target.value })}
+                    className="border p-3 w-full rounded focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block mb-2 font-semibold">Time *</label>
+                  <input
+                    type="time"
+                    value={form.time}
+                    onChange={(e) => setForm({ ...form, time: e.target.value })}
+                    className="border p-3 w-full rounded focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    required
+                  />
+                </div>
               </div>
 
-              {!form.category && (
-                <div className="p-3 bg-yellow-50 border border-yellow-200 rounded mb-3 text-sm text-yellow-800">
-                  ⚠️ Please select a category first
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block font-semibold">Location *</label>
+                  {form.category &&
+                    getLocationConfigForCategory(form.category).showMapPicker && (
+                      <button
+                        type="button"
+                        onClick={() => setUseMapPicker(!useMapPicker)}
+                        className="text-sm bg-teal-100 text-teal-700 px-3 py-1 rounded hover:bg-teal-200 transition"
+                      >
+                        {useMapPicker ? "📝 Switch to Manual Entry" : "🗺️ Use Map Picker"}
+                      </button>
+                    )}
+                </div>
+
+                {!form.category && (
+                  <div className="p-3 bg-yellow-50 border border-yellow-200 rounded mb-3 text-sm text-yellow-800">
+                    ⚠️ Please select a category first
+                  </div>
+                )}
+
+                {useMapPicker &&
+                form.category &&
+                getLocationConfigForCategory(form.category).showMapPicker ? (
+                  <>
+                    <LocationMapPicker
+                      onLocationSelect={handleLocationSelect}
+                      selectedLocation={form.location}
+                      eventCategory={form.category}
+                    />
+                    {form.location && (
+                      <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded">
+                        <p className="text-sm text-green-800">
+                          <strong>Selected:</strong> {form.location}
+                        </p>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <LocationAutocompleteInput
+                    location={form.location}
+                    setLocation={(loc) => setForm({ ...form, location: loc })}
+                    onCoordinatesSelect={async (lat, lng) => {
+                      setLatitude(lat);
+                      setLongitude(lng);
+                      const mrtInfo = await findNearestMRT(lat, lng);
+                      if (mrtInfo) {
+                        setNearestMRT(mrtInfo.name);
+                        setNearestMRTDistance(mrtInfo.distance);
+                      }
+                    }}
+                    disabled={!form.category}
+                    className="border p-3 w-full rounded focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  />
+                )}
+              </div>
+
+              {nearestMRT && nearestMRTDistance && (
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded">
+                  <p className="text-sm text-blue-800">
+                    🚇 <strong>Nearest MRT:</strong> {nearestMRT} ({nearestMRTDistance} km away)
+                  </p>
                 </div>
               )}
 
-              {useMapPicker &&
-              form.category &&
-              getLocationConfigForCategory(form.category).showMapPicker ? (
-                <>
-                  <LocationMapPicker
-                    onLocationSelect={handleLocationSelect}
-                    selectedLocation={form.location}
-                    eventCategory={form.category}
-                  />
-                  {form.location && (
-                    <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded">
-                      <p className="text-sm text-green-800">
-                        <strong>Selected:</strong> {form.location}
-                      </p>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <LocationAutocompleteInput
-                  location={form.location}
-                  setLocation={(loc) => setForm({ ...form, location: loc })}
-                  onCoordinatesSelect={async (lat, lng) => {
-                    setLatitude(lat);
-                    setLongitude(lng);
-                    const mrtInfo = await findNearestMRT(lat, lng);
-                    if (mrtInfo) {
-                      setNearestMRT(mrtInfo.name);
-                      setNearestMRTDistance(mrtInfo.distance);
-                    }
-                  }}
-                  disabled={!form.category}
+              <div>
+                <label className="block mb-2 font-semibold">Capacity *</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={form.capacity}
+                  onChange={(e) => setForm({ ...form, capacity: e.target.value })}
                   className="border p-3 w-full rounded focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  required
                 />
-              )}
-            </div>
-
-            {nearestMRT && nearestMRTDistance && (
-              <div className="p-3 bg-blue-50 border border-blue-200 rounded">
-                <p className="text-sm text-blue-800">
-                  🚇 <strong>Nearest MRT:</strong> {nearestMRT} ({nearestMRTDistance} km away)
-                </p>
               </div>
-            )}
 
-            <div>
-              <label className="block mb-2 font-semibold">Capacity *</label>
-              <input
-                type="number"
-                min="1"
-                value={form.capacity}
-                onChange={(e) => setForm({ ...form, capacity: e.target.value })}
-                className="border p-3 w-full rounded focus:outline-none focus:ring-2 focus:ring-teal-500"
-                required
-              />
-            </div>
-
-            <div className="flex justify-center gap-4 mt-6">
-              <button
-                type="button"
-                onClick={() => router.back()}
-                className="border border-gray-300 px-6 py-3 rounded hover:bg-gray-100"
-              >
-                Back
-              </button>
-              <button
-                type="submit"
-                disabled={loading}
-                className="bg-teal-500 text-white px-6 py-3 rounded hover:bg-teal-600 disabled:opacity-50"
-              >
-                {loading ? "Saving..." : "Save Changes"}
-              </button>
-            </div>
-          </form>
-        )}
+              <div className="flex justify-center gap-4 mt-6">
+                <button
+                  type="button"
+                  onClick={() => router.back()}
+                  className="border border-gray-300 px-6 py-3 rounded hover:bg-gray-100"
+                >
+                  Back
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="bg-teal-500 text-white px-6 py-3 rounded hover:bg-teal-600 disabled:opacity-50"
+                >
+                  {loading ? "Saving..." : "Save Changes"}
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
       </div>
-    </div>
     </div>
   );
 }
