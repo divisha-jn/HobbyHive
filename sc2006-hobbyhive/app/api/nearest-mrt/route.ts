@@ -3,31 +3,39 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { lat, lng, token } = body;
+    const { lat, lng } = body;
 
-    if (!lat || !lng || !token) {
+    if (!lat || !lng) {
       return NextResponse.json(
         { error: 'Missing required parameters' },
         { status: 400 }
       );
     }
 
-    console.log('🚇 Calling OneMap with:', lat, lng);
+    // Get token from environment variable (server-side only)
+    const token = process.env.ONEMAP_TOKEN;
 
-    // Use the exact parameter names from OneMap API docs
+    if (!token) {
+      console.error('❌ ONEMAP_TOKEN not configured in environment variables');
+      return NextResponse.json(
+        { error: 'Server configuration error' },
+        { status: 500 }
+      );
+    }
+
+    console.log('🚇 Calling OneMap API with token');
+
     const url = `https://www.onemap.gov.sg/api/public/nearbysvc/getNearestMrtStops?latitude=${lat}&longitude=${lng}`;
     
     const response = await fetch(url, {
       headers: {
-        'Authorization': token, // Try without Bearer first
+        'Authorization': token,
       },
     });
 
-    console.log('📡 Response status:', response.status);
-
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('❌ Error:', errorText);
+      console.error('❌ OneMap error:', errorText);
       return NextResponse.json(
         { error: errorText },
         { status: response.status }
@@ -39,7 +47,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(data);
   } catch (error: any) {
-    console.error('❌ Error:', error.message);
+    console.error('❌ Server error:', error.message);
     return NextResponse.json(
       { error: error.message },
       { status: 500 }

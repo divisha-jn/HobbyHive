@@ -3,14 +3,6 @@ export async function findNearestMRT(
   longitude: number
 ): Promise<{ name: string; distance: number } | null> {
   try {
-    // Get token from environment variable instead of hardcoding
-    const token = process.env.ONEMAP_TOKEN || '';
-    
-    if (!token) {
-      console.error('❌ ONEMAP_TOKEN not configured');
-      return null;
-    }
-    
     console.log('🚇 Calling server API for MRT');
 
     const response = await fetch('/api/nearest-mrt', {
@@ -21,7 +13,6 @@ export async function findNearestMRT(
       body: JSON.stringify({
         lat: latitude,
         lng: longitude,
-        token: token,
       }),
     });
     
