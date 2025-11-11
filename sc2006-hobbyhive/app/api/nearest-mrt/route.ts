@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getAccessToken } from '@/app/utils/oneMapTokenManager';
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,44 +13,46 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get token from environment variable (server-side only)
-    const token = process.env.ONEMAP_TOKEN;
-
-    if (!token) {
-      console.error('❌ ONEMAP_TOKEN not configured in environment variables');
+    let token: string;
+    try {
+      token = await getAccessToken();
+    } catch (error) {
       return NextResponse.json(
-        { error: 'Server configuration error' },
+        { error: 'Authentication failed' },
         { status: 500 }
       );
     }
 
-    console.log('🚇 Calling OneMap API with token');
-
     const url = `https://www.onemap.gov.sg/api/public/nearbysvc/getNearestMrtStops?latitude=${lat}&longitude=${lng}`;
     
-    const response = await fetch(url, {
+    let response = await fetch(url, {
       headers: {
         'Authorization': token,
       },
     });
 
+    // Retry with fresh token if expired
+    if (response.status === 401) {
+      token = await getAccessToken();
+      response = await fetch(url, {
+        headers: {
+          'Authorization': token,
+        },
+      });
+    }
+
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('❌ OneMap error:', errorText);
       return NextResponse.json(
-        { error: errorText },
+        { error: 'Failed to fetch MRT data' },
         { status: response.status }
       );
     }
 
     const data = await response.json();
-    console.log('✅ Success:', data.length, 'stations');
-
     return NextResponse.json(data);
   } catch (error: any) {
-    console.error('❌ Server error:', error.message);
     return NextResponse.json(
-      { error: error.message },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }

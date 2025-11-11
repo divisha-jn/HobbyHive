@@ -3,8 +3,6 @@ export async function findNearestMRT(
   longitude: number
 ): Promise<{ name: string; distance: number } | null> {
   try {
-    console.log('🚇 Calling server API for MRT');
-
     const response = await fetch('/api/nearest-mrt', {
       method: 'POST',
       headers: {
@@ -17,13 +15,10 @@ export async function findNearestMRT(
     });
     
     if (!response.ok) {
-      console.error('❌ Server API error:', response.status);
       return null;
     }
 
     const data = await response.json();
-    
-    console.log('✅ Server response:', data);
 
     if (Array.isArray(data) && data.length > 0) {
       const nearest = data[0];
@@ -36,7 +31,6 @@ export async function findNearestMRT(
 
     return null;
   } catch (error) {
-    console.error('❌ Error finding nearest MRT:', error);
     return null;
   }
 }
