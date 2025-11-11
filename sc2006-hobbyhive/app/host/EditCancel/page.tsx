@@ -117,7 +117,7 @@ function EditCancelContent() {
       alert("Error cancelling event");
     } else {
       alert("Event cancelled successfully!");
-      router.push("/MyEvents");
+      router.push("/my-events");
     }
   };
 
@@ -154,7 +154,7 @@ function EditCancelContent() {
       alert(result.message || "Error updating event");
     } else {
       alert("Event updated successfully!");
-      router.push("/MyEvents");
+      router.push("/my-events");
     }
   };
 

@@ -92,7 +92,7 @@ const ProfilePage: React.FC = () => {
     loadCounts();
   }, [user, supabase]);
 
-  const handleFindEvents = () => router.push("/MyEvents");
+  const handleFindEvents = () => router.push("/my-events");
   const handleCreateEvent = () => router.push("/host/CreateEvent");
 
   const handleUpdate = async () => {
