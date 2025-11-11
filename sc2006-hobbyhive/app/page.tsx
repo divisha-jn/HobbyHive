@@ -146,23 +146,88 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Quick Links footer */}
-      <footer className="py-8 bg-gray-100 text-center text-gray-600">
-        <div className="space-x-4">
-          <Link href="/profile" className="hover:text-teal-600">
-            My Profile
-          </Link>
-          <Link href="/events" className="hover:text-teal-600">
-            Browse Events
-          </Link>
-          {/* Only show Admin Panel link if user is admin */}
-          {!loading && isAdmin && (
-            <Link href="/admin" className="hover:text-teal-600">
-              Admin Panel
+      {/* Footer with Data Attributions */}
+      <footer className="py-8 bg-gray-100 border-t">
+        <div className="max-w-6xl mx-auto px-6">
+          {/* Quick Links */}
+          <div className="text-center space-x-4 mb-6">
+            <Link href="/profile" className="hover:text-teal-600 text-gray-600">
+              My Profile
             </Link>
-          )}
+            <Link href="/events" className="hover:text-teal-600 text-gray-600">
+              Browse Events
+            </Link>
+            {!loading && isAdmin && (
+              <Link href="/admin" className="hover:text-teal-600 text-gray-600">
+                Admin Panel
+              </Link>
+            )}
+          </div>
+
+          {/* Data Sources & Attributions */}
+          <div className="border-t border-gray-300 pt-6 mt-6">
+            <h3 className="text-sm font-semibold text-gray-700 mb-3 text-center">
+              Data Sources & Attributions
+            </h3>
+            <div className="text-xs text-gray-600 space-y-2 max-w-4xl mx-auto">
+              {/* data.gov.sg Attribution */}
+              <p>
+                Contains information from{' '}
+                <strong>Parks</strong>, <strong>Libraries</strong>, and{' '}
+                <strong>Community Clubs</strong> datasets accessed from{' '}
+                <a 
+                  href="https://data.gov.sg" 
+                  className="text-teal-600 hover:underline"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  data.gov.sg
+                </a>
+                {' '}which is made available under the terms of the{' '}
+                <a 
+                  href="https://data.gov.sg/open-data-licence" 
+                  className="text-teal-600 hover:underline"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Singapore Open Data Licence version 1.0
+                </a>
+              </p>
+
+              {/* OneMap Attribution */}
+              <p>
+                Location search and MRT station data provided by{' '}
+                <a 
+                  href="https://www.onemap.gov.sg" 
+                  className="text-teal-600 hover:underline"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  OneMap
+                </a>
+                {' '}© Singapore Land Authority
+              </p>
+
+              {/* Leaflet Attribution */}
+              <p>
+                Interactive maps powered by{' '}
+                <a 
+                  href="https://leafletjs.com" 
+                  className="text-teal-600 hover:underline"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Leaflet
+                </a>
+              </p>
+            </div>
+          </div>
+
+          {/* Copyright */}
+          <p className="text-sm text-center text-gray-500 mt-6">
+            © {new Date().getFullYear()} HobbyHive. All rights reserved.
+          </p>
         </div>
-        <p className="text-sm mt-4">© {new Date().getFullYear()} HobbyHive</p>
       </footer>
     </main>
   );
