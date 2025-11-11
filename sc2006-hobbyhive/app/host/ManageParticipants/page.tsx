@@ -7,7 +7,7 @@ const mockParticipants = [
   { id: 3, name: "Ravi Kumar", email: "ravi@email.com" },
 ];
 
-export default function ManageParticipants() {
+export default function ManageParticipantsPage() {
   const [participants, setParticipants] = useState(mockParticipants);
 
   const handleRemove = (id: number) => {
