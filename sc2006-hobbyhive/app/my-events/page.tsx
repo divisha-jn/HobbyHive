@@ -5,6 +5,7 @@ import Navbar from "../components/Navbar";
 import { createClient } from "@/utils/supabase/client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Flag } from "lucide-react";
 
 interface Event {
   id: string;
@@ -29,6 +30,12 @@ export default function MyEvents() {
   const [attendingEvents, setAttendingEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  
+  // Flag modal states
+  const [showFlagModal, setShowFlagModal] = useState(false);
+  const [flagReason, setFlagReason] = useState("");
+  const [isFlagging, setIsFlagging] = useState(false);
+  const [eventToFlag, setEventToFlag] = useState<Event | null>(null);
 
   const supabase = createClient();
   const router = useRouter();
@@ -123,10 +130,21 @@ export default function MyEvents() {
         .select("id, username")
         .in("id", hostIds);
 
+      // Check which events are already flagged by this user
+      const eventIds = attending.map((e) => e.id);
+      const { data: flagData } = await supabase
+        .from("event_flags")
+        .select("event_id")
+        .eq("user_id", userId)
+        .in("event_id", eventIds);
+
+      const flaggedEventIds = new Set(flagData?.map((f) => f.event_id) || []);
+
       const attendingWithHostName = attending.map((e) => ({
         ...e,
         hostName:
           profiles?.find((p) => p.id === e.host)?.username || "Unknown",
+        isFlagged: flaggedEventIds.has(e.id),
       }));
 
       setAttendingEvents(attendingWithHostName);
@@ -134,6 +152,52 @@ export default function MyEvents() {
       console.error("Failed to fetch events", err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleFlagEvent = async () => {
+    if (!flagReason.trim()) {
+      alert("Please provide a reason for flagging this event.");
+      return;
+    }
+
+    if (!eventToFlag || !currentUserId) return;
+
+    setIsFlagging(true);
+
+    try {
+      const { error } = await supabase
+        .from("event_flags")
+        .insert([{
+          event_id: eventToFlag.id,
+          user_id: currentUserId,
+          reason: flagReason,
+        }]);
+
+      if (error) {
+        console.error("Error flagging event:", error);
+        
+        // Check for duplicate flag error
+        if (error.message.includes("duplicate key") || error.message.includes("unique constraint")) {
+          alert("You have already flagged this event.");
+        } else {
+          alert("Error flagging event: " + error.message);
+        }
+      } else {
+        // Update the local state to reflect flagged status
+        setAttendingEvents(prev => 
+          prev.map(e => e.id === eventToFlag.id ? { ...e, isFlagged: true } : e)
+        );
+        setShowFlagModal(false);
+        setFlagReason("");
+        setEventToFlag(null);
+        alert("Event flagged successfully. Thank you for your report.");
+      }
+    } catch (err) {
+      console.error("Unexpected error:", err);
+      alert("Error flagging event");
+    } finally {
+      setIsFlagging(false);
     }
   };
 
@@ -211,6 +275,21 @@ export default function MyEvents() {
                     </Link>
                   </p>
                 </div>
+
+                {/* Flag Button - Only show for events NOT hosted by current user */}
+                {event.host !== currentUserId && (
+                  <button
+                    onClick={() => {
+                      setEventToFlag(event);
+                      setShowFlagModal(true);
+                    }}
+                    disabled={event.isFlagged}
+                    className="ml-4 disabled:opacity-50"
+                    title={event.isFlagged ? "Already flagged" : "Flag this event"}
+                  >
+                    <Flag className={`w-6 h-6 ${event.isFlagged ? 'text-red-500 fill-red-500' : 'text-gray-600'}`} />
+                  </button>
+                )}
               </div>
             ))
           ) : (
@@ -302,7 +381,49 @@ export default function MyEvents() {
           )}
         </div>
       </div>
+
+      {/* Flag Modal */}
+      {showFlagModal && eventToFlag && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md">
+            <h3 className="text-xl font-bold text-gray-800 mb-4">Flag Event</h3>
+            <p className="text-sm text-gray-600 mb-2">
+              <strong>Event:</strong> {eventToFlag.title}
+            </p>
+            <p className="text-sm text-gray-600 mb-4">
+              Please provide a reason for flagging this event. This will be reviewed by administrators.
+            </p>
+            
+            <textarea
+              value={flagReason}
+              onChange={(e) => setFlagReason(e.target.value)}
+              placeholder="Describe the issue (e.g., inappropriate content, spam, misleading information)..."
+              className="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-2 focus:ring-teal-500"
+              rows={4}
+            />
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowFlagModal(false);
+                  setFlagReason("");
+                  setEventToFlag(null);
+                }}
+                className="flex-1 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleFlagEvent}
+                disabled={isFlagging}
+                className="flex-1 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition disabled:opacity-50"
+              >
+                {isFlagging ? "Flagging..." : "Submit Flag"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
-
