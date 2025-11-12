@@ -53,7 +53,7 @@ npm install
 2. Start the application.
 
 ```bash
-npm run start
+npm run dev
 ```
 
 And you are ready to start using the FeedItForward Frontend! The frontend application is running on http://localhost:3000/
@@ -80,7 +80,6 @@ cd app
 uvicorn main:app --reload
 ```
 
-And you are ready to start using the FeedItForward Backend! The server application is running on http://127.0.0.1:8000/
 
 
 # Pre-configured Users
