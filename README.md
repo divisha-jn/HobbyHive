@@ -27,8 +27,6 @@ This project applied **software engineering best practices** and **design patter
   - [Backend](#backend)
 - [Pre-configured Users](#pre-configured-users)
 - [Documentation](#documentation)
-- [API Docs](#api-docs)
-  - [API Endpoints](#api-endpoints)
 - [Design](#design)
   - [Overview](#overview)
   - [Architecture](#architecture)
