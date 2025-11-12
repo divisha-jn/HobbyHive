@@ -298,23 +298,32 @@ useEffect(() => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block mb-2 font-semibold">Date *</label>
-                    <input
-                      type="date"
-                      value={date}
-                      onChange={(e) => setDate(e.target.value)}
-                      className={getInputClassName("date")}
-                    />
+                   <input
+                       type="date"
+                        value={date}
+                        onChange={(e) => setDate(e.target.value)}
+                         min={(() => {
+                    const today = new Date();
+                    today.setDate(today.getDate() + 2);
+                    return today.toISOString().split('T')[0];
+                    })()}
+                  className={getInputClassName("date")}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                  Must be at least 2 days from today
+                  </p>
                   </div>
-                  <div>
-                    <label className="block mb-2 font-semibold">Time *</label>
-                    <input
-                      type="time"
-                      value={time}
-                      onChange={(e) => setTime(e.target.value)}
-                      className={getInputClassName("time")}
-                    />
-                  </div>
+              <div>
+             <label className="block mb-2 font-semibold">Time *</label>
+              <input
+             type="time"
+                value={time}
+               onChange={(e) => setTime(e.target.value)}
+                  className={getInputClassName("time")}
+                 />
                 </div>
+                </div>
+
 
                 {/* LOCATION SECTION - After Date/Time */}
                 <LocationSection

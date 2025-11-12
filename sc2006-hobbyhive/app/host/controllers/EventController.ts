@@ -1,18 +1,22 @@
 import { EventModel, EventData } from "@/app/host/models/EventModel";
 import { findNearestMRT } from "@/app/utils/calculateNearestMRT";
 
+
 interface ValidationResult {
   isValid: boolean;
   errors: { [key: string]: boolean };
   message?: string;
 }
 
+
 export class EventController {
   private eventModel: EventModel;
+
 
   constructor(eventModel: EventModel) {
     this.eventModel = eventModel;
   }
+
 
   /**
    * Validate event form data
@@ -29,6 +33,7 @@ export class EventController {
     const errors: { [key: string]: boolean } = {};
     let message = "";
 
+
     // Required field validation
     if (!formData.title.trim()) errors.title = true;
     if (!formData.category) errors.category = true;
@@ -38,22 +43,34 @@ export class EventController {
     if (!formData.location.trim()) errors.location = true;
     if (!formData.capacity || parseInt(formData.capacity) <= 0) errors.capacity = true;
 
-    // Future date/time validation
+
+    // Future date/time validation with 2-day minimum
     if (formData.date && formData.time) {
       const selectedDateTime = new Date(`${formData.date}T${formData.time}`);
       const now = new Date();
+      const twoDaysFromNow = new Date();
+      twoDaysFromNow.setDate(twoDaysFromNow.getDate() + 2);
+      twoDaysFromNow.setHours(0, 0, 0, 0); // Reset to start of day
+      
+      const selectedDateOnly = new Date(formData.date);
+      selectedDateOnly.setHours(0, 0, 0, 0);
 
       if (selectedDateTime <= now) {
         errors.date = true;
         errors.time = true;
         message = "Please select a future date and time.";
+      } else if (selectedDateOnly < twoDaysFromNow) {
+        errors.date = true;
+        message = "Events must be scheduled at least 2 days in advance.";
       }
     }
+
 
     // Set default message if fields are missing
     if (Object.keys(errors).length > 0 && !message) {
       message = "Please fill in all required fields marked with *";
     }
+
 
     return {
       isValid: Object.keys(errors).length === 0,
@@ -61,6 +78,7 @@ export class EventController {
       message,
     };
   }
+
 
   /**
    * Calculate nearest MRT station for given coordinates
@@ -74,6 +92,7 @@ export class EventController {
       return null;
     }
   }
+
 
   /**
    * Create a new event
@@ -105,6 +124,7 @@ export class EventController {
       };
     }
 
+
     // Get current user
     const { user, error: userError } = await this.eventModel.getCurrentUser();
     if (userError || !user) {
@@ -115,11 +135,13 @@ export class EventController {
       };
     }
 
+
     // Handle image upload
     let imageUrl = "https://images.unsplash.com/photo-1507525428034-b723cf961d3e";
     if (imageFile) {
       const { imageUrl: uploadedUrl, error: uploadError } =
         await this.eventModel.uploadEventImage(imageFile, user.id, formData.title);
+
 
       if (uploadError) {
         return {
@@ -129,8 +151,10 @@ export class EventController {
         };
       }
 
+
       if (uploadedUrl) imageUrl = uploadedUrl;
     }
+
 
     // Create event
     const eventData: EventData = {
@@ -149,7 +173,9 @@ export class EventController {
       image_url: imageUrl,
     };
 
+
     const { error } = await this.eventModel.createEvent(eventData, user.id);
+
 
     if (error) {
       return {
@@ -159,12 +185,14 @@ export class EventController {
       };
     }
 
+
     return {
       success: true,
       errors: {},
       message: "Event created successfully!",
     };
   }
+
 
   /**
    * Update an existing event
@@ -198,6 +226,7 @@ export class EventController {
       };
     }
 
+
     // Get current user
     const { user, error: userError } = await this.eventModel.getCurrentUser();
     if (userError || !user) {
@@ -208,11 +237,13 @@ export class EventController {
       };
     }
 
+
     // Handle image upload
     let imageUrl = existingImageUrl || "https://images.unsplash.com/photo-1507525428034-b723cf961d3e";
     if (imageFile) {
       const { imageUrl: uploadedUrl, error: uploadError } =
         await this.eventModel.uploadEventImage(imageFile, user.id, formData.title);
+
 
       if (uploadError) {
         return {
@@ -222,8 +253,10 @@ export class EventController {
         };
       }
 
+
       if (uploadedUrl) imageUrl = uploadedUrl;
     }
+
 
     // Update event
     const eventData: EventData = {
@@ -242,7 +275,9 @@ export class EventController {
       image_url: imageUrl,
     };
 
+
     const { error } = await this.eventModel.updateEvent(eventId, eventData);
+
 
     if (error) {
       return {
@@ -252,12 +287,14 @@ export class EventController {
       };
     }
 
+
     return {
       success: true,
       errors: {},
       message: "Event updated successfully!",
     };
   }
+
 
   /**
    * Fetch event by ID
@@ -266,6 +303,7 @@ export class EventController {
     const { data, error } = await this.eventModel.fetchEventById(eventId);
     return { data, error };
   }
+
 
   /**
    * Cancel an event

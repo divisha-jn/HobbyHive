@@ -1,6 +1,7 @@
 "use client";
 import React from "react";
 
+
 interface EventFormProps {
   title: string;
   setTitle: (title: string) => void;
@@ -21,6 +22,7 @@ interface EventFormProps {
   errors: { [key: string]: boolean };
   getInputClassName: (fieldName: string) => string;
 }
+
 
 export default function EventForm({
   title,
@@ -56,12 +58,14 @@ export default function EventForm({
     "Other",
   ];
 
+
   const skillLevels = [
     "Beginner friendly",
     "Intermediate",
     "Advanced",
     "All levels welcome",
   ];
+
 
   return (
     <>
@@ -75,6 +79,7 @@ export default function EventForm({
           placeholder="e.g., Weekend Hike"
         />
       </div>
+
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
@@ -109,6 +114,7 @@ export default function EventForm({
         </div>
       </div>
 
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block mb-2 font-semibold">Date *</label>
@@ -116,8 +122,16 @@ export default function EventForm({
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
+            min={(() => {
+              const today = new Date();
+              today.setDate(today.getDate() + 2);
+              return today.toISOString().split('T')[0];
+            })()}
             className={getInputClassName("date")}
           />
+          <p className="text-xs text-gray-500 mt-1">
+            Must be at least 2 days from today
+          </p>
         </div>
         <div>
           <label className="block mb-2 font-semibold">Time *</label>
@@ -129,6 +143,7 @@ export default function EventForm({
           />
         </div>
       </div>
+
 
       {/* Description moved to separate section below Location */}
       
@@ -142,6 +157,7 @@ export default function EventForm({
           rows={4}
         />
       </div>
+
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>

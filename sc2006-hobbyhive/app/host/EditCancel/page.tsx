@@ -9,10 +9,12 @@ import Navbar from "@/app/components/Navbar";
 import { EventController } from "@/app/host/controllers/EventController";
 import { EventModel } from "@/app/host/models/EventModel";
 
+
 const LocationMapPicker = dynamic(
   () => import("@/app/components/LocationMapPicker"),
   { ssr: false }
 );
+
 
 function EditCancelContent() {
   const searchParams = useSearchParams();
@@ -20,13 +22,16 @@ function EditCancelContent() {
   const mode = searchParams.get("mode");
   const router = useRouter();
 
+
   // Initialize MVC
   const eventModel = new EventModel();
   const eventController = new EventController(eventModel);
 
+
   const [event, setEvent] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [useMapPicker, setUseMapPicker] = useState(false);
+
 
   const [form, setForm] = useState({
     title: "",
@@ -39,10 +44,12 @@ function EditCancelContent() {
     skillLevel: "",
   });
 
+
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
   const [nearestMRT, setNearestMRT] = useState<string | null>(null);
   const [nearestMRTDistance, setNearestMRTDistance] = useState<number | null>(null);
+
 
   const categories = [
     "Sports & Fitness",
@@ -58,12 +65,15 @@ function EditCancelContent() {
     "Other",
   ];
 
+
   // Fetch event data
   useEffect(() => {
     const fetchEvent = async () => {
       if (!eventId) return;
 
+
       const { data, error } = await eventController.fetchEventById(eventId);
+
 
       if (!error && data) {
         setEvent(data);
@@ -78,6 +88,7 @@ function EditCancelContent() {
           skillLevel: data.skill_level || "",
         });
 
+
         if (data.latitude) setLatitude(data.latitude);
         if (data.longitude) setLongitude(data.longitude);
         if (data.nearest_mrt_station) setNearestMRT(data.nearest_mrt_station);
@@ -88,13 +99,16 @@ function EditCancelContent() {
     fetchEvent();
   }, [eventId]);
 
+
   // Handle location selection with MRT calculation
   const handleLocationSelect = async (locationName: string, lat?: number, lng?: number) => {
     setForm({ ...form, location: locationName });
 
+
     if (lat !== undefined && lng !== undefined) {
       setLatitude(lat);
       setLongitude(lng);
+
 
       const mrtInfo = await eventController.calculateNearestMRT(lat, lng);
       if (mrtInfo) {
@@ -104,14 +118,17 @@ function EditCancelContent() {
     }
   };
 
+
   // Handle cancel event
   const handleCancel = async () => {
     const confirmCancel = confirm("Are you sure you want to cancel this event?");
     if (!confirmCancel) return;
 
+
     setLoading(true);
     const result = await eventController.cancelEvent(eventId!);
     setLoading(false);
+
 
     if (result.error) {
       alert("Error cancelling event");
@@ -121,9 +138,11 @@ function EditCancelContent() {
     }
   };
 
+
   // Handle edit event
   const handleEdit = async (e: React.FormEvent) => {
     e.preventDefault();
+
 
     // Use controller for validation and update
     const formData = {
@@ -141,6 +160,7 @@ function EditCancelContent() {
       nearestMRTDistance,
     };
 
+
     setLoading(true);
     const result = await eventController.updateEvent(
       eventId!,
@@ -150,6 +170,7 @@ function EditCancelContent() {
     );
     setLoading(false);
 
+
     if (!result.success) {
       alert(result.message || "Error updating event");
     } else {
@@ -158,8 +179,10 @@ function EditCancelContent() {
     }
   };
 
+
   if (loading) return <p className="p-6">Loading...</p>;
   if (!event) return <p className="p-6">Event not found.</p>;
+
 
   return (
     <div className="min-h-screen bg-gradient-to-r from-teal-400 to-cyan-500 relative">
@@ -172,6 +195,7 @@ function EditCancelContent() {
           <h1 className="text-2xl font-bold mb-6 text-center">
             {mode === "edit" ? "Edit Event Details" : "Cancel Event"}
           </h1>
+
 
           {mode === "cancel" ? (
             <div className="text-center">
@@ -211,6 +235,7 @@ function EditCancelContent() {
                 />
               </div>
 
+
               <div>
                 <label className="block mb-2 font-semibold">Category *</label>
                 <select
@@ -228,6 +253,7 @@ function EditCancelContent() {
                 </select>
               </div>
 
+
               <div>
                 <label className="block mb-2 font-semibold">Skill Level *</label>
                 <select
@@ -244,6 +270,7 @@ function EditCancelContent() {
                 </select>
               </div>
 
+
               <div>
                 <label className="block mb-2 font-semibold">Description</label>
                 <textarea
@@ -254,6 +281,7 @@ function EditCancelContent() {
                 />
               </div>
 
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block mb-2 font-semibold">Date *</label>
@@ -261,10 +289,19 @@ function EditCancelContent() {
                     type="date"
                     value={form.date}
                     onChange={(e) => setForm({ ...form, date: e.target.value })}
+                    min={(() => {
+                      const today = new Date();
+                      today.setDate(today.getDate() + 2);
+                      return today.toISOString().split('T')[0];
+                    })()}
                     className="border p-3 w-full rounded focus:outline-none focus:ring-2 focus:ring-teal-500"
                     required
                   />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Must be at least 2 days from today
+                  </p>
                 </div>
+
 
                 <div>
                   <label className="block mb-2 font-semibold">Time *</label>
@@ -277,6 +314,7 @@ function EditCancelContent() {
                   />
                 </div>
               </div>
+
 
               <div>
                 <div className="flex items-center justify-between mb-2">
@@ -293,11 +331,13 @@ function EditCancelContent() {
                     )}
                 </div>
 
+
                 {!form.category && (
                   <div className="p-3 bg-yellow-50 border border-yellow-200 rounded mb-3 text-sm text-yellow-800">
                     ⚠️ Please select a category first
                   </div>
                 )}
+
 
                 {useMapPicker &&
                 form.category &&
@@ -335,6 +375,7 @@ function EditCancelContent() {
                 )}
               </div>
 
+
               {nearestMRT && nearestMRTDistance && (
                 <div className="p-3 bg-blue-50 border border-blue-200 rounded">
                   <p className="text-sm text-blue-800">
@@ -342,6 +383,7 @@ function EditCancelContent() {
                   </p>
                 </div>
               )}
+
 
               <div>
                 <label className="block mb-2 font-semibold">Capacity *</label>
@@ -354,6 +396,7 @@ function EditCancelContent() {
                   required
                 />
               </div>
+
 
               <div className="flex justify-center gap-4 mt-6">
                 <button
@@ -378,6 +421,7 @@ function EditCancelContent() {
     </div>
   );
 }
+
 
 export default function EditCancelPage() {
   return (
