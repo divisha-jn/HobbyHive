@@ -112,34 +112,19 @@ The frontend (Next.js + React) consists of different User Interfaces organized b
 
 ## File Structure
 
-- `📁 app/admin`
-  - Contains admin only pages.
-- `📁 app/api`
-  - Contains API routes.
-- `📁 app/components`
-  - Contains reusable UI components.
-- `📁 app/config`
-  - Contaings configuration files.
-- `📁 app/groupchat`
-  - Contains real-time chat features.
-- `📁 app/host`
-  - Contains event host features.
-- `📁 app/my-events`
-  - Contains user's events dashboard.
-- `📁 app/participant/[id]`
-  - Contains other user's profile pages.
-- `📁 app/profile`
-  - Contains user's profile management.
-- `📁 app/utils`
-  - Contains utility functions.
-- `📁 app/page.tsx`
-  - Contains Homepage.
-
-- `📁 public`
-  - Contains static assets including icons, images.
-
-- `📁 utils/supabase`
-  - Contains Supabase client initialization for server-side and client-side components, along with middleware configuration.
+- `📁 app/admin` Contains admin only pages.
+- `📁 app/api` Contains API routes.
+- `📁 app/components` Contains reusable UI components.
+- `📁 app/config` Contains configuration files.
+- `📁 app/groupchat` Contains real-time chat features.
+- `📁 app/host` Contains event host features.
+- `📁 app/my-events` Contains user's events dashboard.
+- `📁 app/participant/[id]` Contains other user's profile pages.
+- `📁 app/profile` Contains user's profile management.
+- `📁 app/utils` Contains utility functions.
+- `📁 app/page.tsx` Contains Homepage.
+- `📁 public` Contains static assets including icons, images.
+- `📁 utils/supabase` Contains Supabase client initialization for server-side and client-side components, along with middleware configuration.
 
 
 ## Software Engineering Practices
