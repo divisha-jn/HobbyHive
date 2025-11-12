@@ -81,26 +81,66 @@ export async function fetchMembers(chatId: string): Promise<MemberRow[]> {
 }
 
 
+
 // user leaves groupchat
 export async function leaveGroup(chatId: string, userId: string): Promise<void> {
   const supabase = createClient();
-  const { error } = await supabase
+  
+  // First, get the event_id associated with this chat
+  const { data: chatData, error: chatError } = await supabase
+    .from("group_chats")
+    .select("event_id")
+    .eq("id", chatId)
+    .single();
+  
+  if (chatError) throw new Error(chatError.message);
+  
+  // Delete from both tables
+  const { error: memberError } = await supabase
     .from("group_chat_members")
     .delete()
     .eq("chat_id", chatId)
     .eq("user_id", userId);
 
-  if (error) throw new Error(error.message);
+  if (memberError) throw new Error(memberError.message);
+
+  const { error: participantError } = await supabase
+    .from("event_participants")
+    .delete()
+    .eq("event_id", chatData.event_id)
+    .eq("user_id", userId);
+
+  if (participantError) throw new Error(participantError.message);
 }
 
 // host remove function
 export async function removeMember(chatId: string, memberUserId: string): Promise<void> {
   const supabase = createClient();
-  const { error } = await supabase
+  
+  // First, get the event_id associated with this chat
+  const { data: chatData, error: chatError } = await supabase
+    .from("group_chats")
+    .select("event_id")
+    .eq("id", chatId)
+    .single();
+  
+  if (chatError) throw new Error(chatError.message);
+  
+  // Delete from both tables
+  const { error: memberError } = await supabase
     .from("group_chat_members")
     .delete()
     .eq("chat_id", chatId)
     .eq("user_id", memberUserId);
 
-  if (error) throw new Error(error.message);
+  if (memberError) throw new Error(memberError.message);
+
+  const { error: participantError } = await supabase
+    .from("event_participants")
+    .delete()
+    .eq("event_id", chatData.event_id)
+    .eq("user_id", memberUserId);
+
+  if (participantError) throw new Error(participantError.message);
 }
+
