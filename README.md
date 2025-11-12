@@ -23,8 +23,6 @@ This project applied **software engineering best practices** and **design patter
 
 - [HobbyHive](#hobbyhive-)
 - [Setup Instructions](#setup-instructions)
-  - [Frontend](#frontend)
-  - [Backend](#backend)
 - [Pre-configured Users](#pre-configured-users)
 - [Documentation](#documentation)
 - [Design](#design)
@@ -40,44 +38,37 @@ This project applied **software engineering best practices** and **design patter
 
 # Setup Instructions
 
-## Frontend
+## Prerequisites
 
-1. In the `/frontend` directory, install the required node modules.
+- Node.js (v18 or higher)
+- npm or yarn
+- Git
 
+## Installation
+
+1. **Clone the repository**
+```bash
+git clone https://github.com/ishxtaa/2006-SCSC-108.git
+cd 2006-SCSC-108/sc2006-hobbyhive
+```
+
+2. **Install dependencies**
 ```bash
 npm install
 ```
 
-2. Start the application.
+3. **Environment variables**\
+The project uses a shared Supabase instance. The `.env.local` file with credentials is already included in the repository.
 
+
+4. **Run the development server**
 ```bash
 npm run dev
 ```
 
-And you are ready to start using the FeedItForward Frontend! The frontend application is running on http://localhost:3000/
 
-## Backend
-
-1. In the `/backend` directory, create a python virtual environment and activate it.
-
-```bash
-python -m venv .venv
-. .venv/Scripts/activate # The .venv activation command might differ depending on your operating system
-```
-
-2. Install the required packages.
-
-```bash
-pip install -r requirements.txt
-```
-
-3. In the `/backend/app` directory, start the application.
-
-```bash
-cd app
-uvicorn main:app --reload
-```
-
+**And you are ready to start using the HobbyHive!**\
+Open [http://localhost:3000](http://localhost:3000) in your browser to see the website.
 
 
 # Pre-configured Users
