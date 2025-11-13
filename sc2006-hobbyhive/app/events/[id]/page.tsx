@@ -233,9 +233,6 @@ export default function EventListing() {
         <div className="mb-6">
           <div className="flex items-start justify-between mb-2">
             <h1 className="text-3xl font-bold text-gray-800 flex-1">{event.title}</h1>
-            <button onClick={() => setIsLiked(!isLiked)} className="ml-3">
-              <Heart className={`w-6 h-6 ${isLiked ? 'fill-red-500 text-red-500' : 'text-gray-400'}`} />
-            </button>
           </div>
           <div className="flex gap-2">
             <span className="px-3 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded-full">Active</span>
