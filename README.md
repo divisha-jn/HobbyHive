@@ -104,6 +104,7 @@ The frontend (Next.js + React) consists of different User Interfaces organized b
 - `📁 app/api` Contains API routes.
 - `📁 app/components` Contains reusable UI components.
 - `📁 app/config` Contains configuration files.
+- `📁 app/docs` Contains documentation for external APIs and database schema.
 - `📁 app/groupchat` Contains real-time chat features.
 - `📁 app/host` Contains event host features.
 - `📁 app/my-events` Contains user's events dashboard.
