@@ -130,6 +130,7 @@ The frontend (Next.js + React) consists of different User Interfaces organized b
 - `📁 utils/supabase` Contains Supabase client initialization for server-side and client-side components, along with middleware configuration.
 
 
+
 \*_For Detailed File Structure, please refer [Code README](https://github.com/softwarelab3/2006-SCSC-108/blob/main/README.md)._
 
 
