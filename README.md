@@ -9,7 +9,7 @@ Welcome to the official repository for NTU SC2006 Software Engineering group pro
 <p align="center">
     <a href="https://github.com/ishxtaa/2006-SCSC-108/tree/main/sc2006-hobbyhive">Code</a>
     |
-    <a href="">Demo Video</a>
+    <a href="https://youtu.be/d8QiLKlCu-0">Demo Video</a>
 </p>
 
 HobbyHive believes in **connecting people** through shared experiences. Our platform empowers communities to **discover, host, and manage events,** from local gatherings to large-scale activities, all in one place.
