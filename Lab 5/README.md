@@ -16,7 +16,7 @@ Youtube Link: [https://www.youtube.com/watch?v=d8QiLKlCu-0](https://youtu.be/d8Q
 **The [Supporting Documents](https://github.com/softwarelab3/2006-SCSC-108/tree/main/Lab%205/Supporting%20Documents) directory contains:**
 
 - [Data Dictionary](https://github.com/softwarelab3/2006-SCSC-108/blob/main/Lab%205/Supporting%20Documents/Data%20Dictionary.pdf)
-- [Presentation Slides](https://github.com/softwarelab3/2006-SCSC-108/blob/main/Lab%205/Supporting%20Documents/Presentation%20Slides.pdf): Please download raw file to see properly formatted slides
+- [Presentation Slides](https://github.com/softwarelab3/2006-SCSC-108/blob/main/Lab%205/Supporting%20Documents/Presentation%20Slides.pdf)
 - [Sequence Diagrams](https://github.com/softwarelab3/2006-SCSC-108/blob/main/Lab%205/Supporting%20Documents/Sequence%20Diagrams.pdf)
 - [Use Case Diagram and Descriptions](https://github.com/softwarelab3/2006-SCSC-108/blob/main/Lab%205/Supporting%20Documents/Use%20Case%20Diagram%20and%20Descriptions.pdf)
 - [User Interface Mockups](https://github.com/softwarelab3/2006-SCSC-108/blob/main/Lab%205/Supporting%20Documents/User%20Interface%20Mockups.pdf)
