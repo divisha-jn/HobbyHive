@@ -5,7 +5,7 @@
 - White Box Testing
 - Test Cases and Results
 - Demo Script
-- Working Application Prototype
+- [Working Application Prototype](https://2006-scsc-108-s6sa.vercel.app/)
   
 ## Files
 The `Lab 4 Deliverables.pdf` contains all the required lab 4 deliverables except the working application prototype (please refer to the source code).
