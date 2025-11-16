@@ -131,7 +131,7 @@ The frontend (Next.js + React) consists of different User Interfaces organized b
 
 
 
-\*_For Detailed File Structure, please refer [Code README](https://github.com/softwarelab3/2006-SCSC-108/blob/main/README.md)._
+\*_For Detailed File Structure, please refer [Code README](https://github.com/softwarelab3/2006-SCSC-108/blob/main/sc2006-hobbyhive/README.md)._
 
 
 ## Software Engineering Practices
