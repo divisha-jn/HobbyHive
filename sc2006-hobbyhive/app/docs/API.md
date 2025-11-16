@@ -359,3 +359,31 @@ All endpoints follow consistent error response format:
 - **OneMap API:** Geocoding and nearest MRT functionality
 
 **GeoJSON Handling:** All Data.gov.sg endpoints fetch GeoJSON data and transform coordinates from `[longitude, latitude]` to separate fields.
+
+---
+
+## Event Category to Location Mapping
+
+HobbyHive’s recommendation system uses external APIs to suggest relevant locations based on event categories. The table below shows which location APIs are queried for each event category.
+
+| Category            | Location APIs Used                   |
+|---------------------|--------------------------------------|
+| Sports & Fitness    | 🟢 Parks, 🟠 Clubs                    |
+| Arts & Crafts       | 🟠 Clubs                              |
+| Music               | 🟠 Clubs                              |
+| Gaming              | 🟠 Clubs                              |
+| Cooking & Baking    | 🟠 Clubs                              |
+| Outdoor Activities  | 🟢 Parks                              |
+| Photography         | 🟢 Parks, 🟠 Clubs                    |
+| Dance               | 🟠 Clubs                              |
+| Reading & Books     | 🟣 Libraries, 🟠 Clubs                |
+| Language Learning   | 🟣 Libraries, 🟠 Clubs                |
+| Other               | None (Manual entry)                  |
+
+**Legend:**
+- 🟢 **Parks**: `/api/parks` endpoint
+- 🟠 **Clubs**: `/api/community-clubs` endpoint
+- 🟣 **Libraries**: `/api/libraries` endpoint
+
+**Usage:**  
+When a user creates an event or searches by category, the system fetches location data from the corresponding APIs to provide contextually relevant venue suggestions near the user’s specified location.
