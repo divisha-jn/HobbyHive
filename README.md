@@ -19,6 +19,8 @@ This project applied **software engineering best practices** and **design patter
 
 <br>
 
+
+
 **Table of Contents**
 
 - [HobbyHive](#hobbyhive-)
@@ -84,6 +86,18 @@ Open [http://localhost:3000](http://localhost:3000) in your browser to see the w
 
 # Documentation
 
+All design, requirements, and technical documents for HobbyHive are available below:
+
+- [Software Requirements Specification (SRS)](https://github.com/softwarelab3/2006-SCSC-108/blob/main/Lab%205/Software%20Requirements%20Specification.pdf)
+- [Supporting Documents](https://github.com/softwarelab3/2006-SCSC-108/tree/main/Lab%205/Supporting%20Documents)
+- [System & UML Diagrams](https://github.com/softwarelab3/2006-SCSC-108/tree/main/Lab%205/Diagram%20Images)
+
+  
+## API Documentation 
+Complete API documentation is available here: [API Documentation (API.md)](https://github.com/softwarelab3/2006-SCSC-108/blob/main/sc2006-hobbyhive/app/docs/API.md)
+
+## Database Schema
+Database schema and explanation is available here: [Database Schema (DATABASE.md)](https://github.com/softwarelab3/2006-SCSC-108/blob/main/sc2006-hobbyhive/app/docs/DATABASE.md)
 
 
 # Design
