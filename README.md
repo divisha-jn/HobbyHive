@@ -7,7 +7,7 @@ Welcome to the official repository for NTU SC2006 Software Engineering group pro
 </p>
 
 <p align="center">
-    <a href="https://github.com/ishxtaa/2006-SCSC-108/tree/main/sc2006-hobbyhive">Code</a>
+    <a href="https://github.com/softwarelab3/2006-SCSC-108/tree/main/sc2006-hobbyhive">Code</a>
     |
     <a href="https://youtu.be/d8QiLKlCu-0">Demo Video</a>
 </p>
@@ -48,7 +48,7 @@ This project applied **software engineering best practices** and **design patter
 
 1. **Clone the repository**
 ```bash
-git clone https://github.com/ishxtaa/2006-SCSC-108.git
+git clone https://github.com/softwarelab3/2006-SCSC-108.git
 cd 2006-SCSC-108/sc2006-hobbyhive
 ```
 
