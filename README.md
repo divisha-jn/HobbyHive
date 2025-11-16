@@ -1,6 +1,6 @@
 # HobbyHive 🎨
 
-Welcome to the official repository for NTU SC2006 Software Engineering group project **_HobbyHive_**.
+Welcome to the official repository for NTU SC2006 Software Engineering group project **_HobbyHive_** (SCSC-Group1).
 
 <p align='center'>
   <img src="/sc2006-hobbyhive/public/card.png" width=600 />
