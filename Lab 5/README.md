@@ -19,6 +19,7 @@ Youtube Link: [https://www.youtube.com/watch?v=d8QiLKlCu-0](https://youtu.be/d8Q
 
 **The `Supporting Documents` directory contains:**
 
+- Data Dictionary
 - Presentation Slides
 - Sequence Diagrams
 - Use Case Diagram and Descriptions
