@@ -194,6 +194,19 @@ Reports/flags on events by users.
 - `deleted_event`: Event removed due to flag
 
 ---
+## Entity Relationships
+
+- **auth.users** (Supabase Auth)
+  - **profiles** (1:1)
+    - **events** (1:many via host_id)
+      - **event_participants** (many:many junction table)
+      - **group_chats** (1:1)
+        - **group_chat_members** (many:many junction table)
+        - **messages** (1:many)
+      - **event_flags** (1:many)
+    - **follows** (many:many, self-referential)
+   
+---
 
 ## User Roles
 
