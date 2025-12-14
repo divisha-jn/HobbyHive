@@ -7,7 +7,7 @@ Welcome to the official repository for NTU SC2006 Software Engineering group pro
 </p>
 
 <p align="center">
-    <a href="https://github.com/softwarelab3/2006-SCSC-108/tree/main/sc2006-hobbyhive">Code</a>
+    <a href="https://github.com/divisha-jn/2006-SCSC-108/tree/main/sc2006-hobbyhive">Code</a>
     |
     <a href="https://youtu.be/d8QiLKlCu-0">Demo Video</a>
 </p>
@@ -50,7 +50,7 @@ This project applied **software engineering best practices** and **design patter
 
 1. **Clone the repository**
 ```bash
-git clone https://github.com/softwarelab3/2006-SCSC-108.git
+git clone https://github.com/divisha-jn/2006-SCSC-108.git
 cd 2006-SCSC-108/sc2006-hobbyhive
 ```
 
@@ -88,16 +88,16 @@ Open [http://localhost:3000](http://localhost:3000) in your browser to see the w
 
 All design, requirements, and technical documents for HobbyHive are available below:
 
-- [Software Requirements Specification (SRS)](https://github.com/softwarelab3/2006-SCSC-108/blob/main/Lab%205/Software%20Requirements%20Specification.pdf)
-- [Supporting Documents](https://github.com/softwarelab3/2006-SCSC-108/tree/main/Lab%205/Supporting%20Documents)
-- [System & UML Diagrams](https://github.com/softwarelab3/2006-SCSC-108/tree/main/Lab%205/Diagram%20Images)
+- [Software Requirements Specification (SRS)](https://github.com/divisha-jn/2006-SCSC-108/blob/main/Lab%205/Software%20Requirements%20Specification.pdf)
+- [Supporting Documents](https://github.com/divisha-jn/2006-SCSC-108/tree/main/Lab%205/Supporting%20Documents)
+- [System & UML Diagrams](https://github.com/divisha-jn/2006-SCSC-108/tree/main/Lab%205/Diagram%20Images)
 
   
 ## API Documentation 
-Complete API documentation is available here: [API Documentation (API.md)](https://github.com/softwarelab3/2006-SCSC-108/blob/main/sc2006-hobbyhive/app/docs/API.md)
+Complete API documentation is available here: [API Documentation (API.md)](https://github.com/divisha-jn/2006-SCSC-108/blob/main/sc2006-hobbyhive/app/docs/API.md)
 
 ## Database Schema
-Database schema and explanation is available here: [Database Schema (DATABASE.md)](https://github.com/softwarelab3/2006-SCSC-108/blob/main/sc2006-hobbyhive/app/docs/DATABASE.md)
+Database schema and explanation is available here: [Database Schema (DATABASE.md)](https://github.com/divisha-jn/2006-SCSC-108/blob/main/sc2006-hobbyhive/app/docs/DATABASE.md)
 
 
 # Design
@@ -131,7 +131,7 @@ The frontend (Next.js + React) consists of different User Interfaces organized b
 
 
 
-\*_For Detailed File Structure, please refer [Code README](https://github.com/softwarelab3/2006-SCSC-108/blob/main/sc2006-hobbyhive/README.md)._
+\*_For Detailed File Structure, please refer [Code README](https://github.com/divisha-jn/2006-SCSC-108/blob/main/sc2006-hobbyhive/README.md)._
 
 
 ## Software Engineering Practices
